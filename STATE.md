@@ -1,4 +1,4 @@
-# STATE.md — PRISMA STUDIO
+﻿# STATE.md — PRISMA STUDIO
 
 > **Este ficheiro tem dois blocos com donos diferentes.**
 > **`[AUTO]`** — escrito pelo `verify.sh` contra o servidor real. **NENHUM agente ou humano edita isto à mão.**
@@ -12,9 +12,9 @@
 ## [AUTO] Verdade de terreno
 
 > Gerado por `verify.ps1` â€” **nao editar a mao**.
-> **Verificado em:** 2026-07-15T23:40:52+01:00 | **Servidor:** `161.35.19.139` | **Commit:** `915a23a`
+> **Verificado em:** 2026-07-18T02:13:06+01:00 | **Servidor:** `161.35.19.139` | **Commit:** `761d403`
 
-**3 falha(s) critica(s)** e 4 pendencia(s). **NAO avancar** para sprints seguintes.
+Sem falhas criticas. 3 pendencia(s) conhecida(s).
 
 | Item | Estado |
 |---|---|
@@ -23,18 +23,23 @@
 | Porta 5678 fechada ao exterior | OK |
 | SSL/HTTPS (bloqueado: precisa de dominio) | PENDENTE |
 | Cron de backup configurado | OK |
-| Backup cifrado existe no servidor | FALHA |
-| Backup replicado FORA do servidor | FALHA |
+| Backup cifrado existe no servidor | OK |
+| Backup replicado FORA do servidor | OK |
 | Restauracao ja foi testada | PENDENTE |
-| Data do ultimo backup | NUNCA |
-| Modelo Gemini configurado | OK `gemini-2.5-flash` |
+| Data do ultimo backup | `2026-07-18` |
+| Modelo Gemini configurado | OK `gemini-3.5-flash` |
 | escapeHtml presente no compilador | OK |
 | escapeAttr presente (safeUrl depende dela) | OK |
 | responseSchema (structured output) ativo | OK |
 | Typo BEM-VDO corrigido | OK |
-| Workflows registados (sem duplicados) | 2 workflows - DUPLICADO? |
+| Workflows registados (sem duplicados) | OK (1) |
 | Error Workflow configurado (Sprint 3) | PENDENTE |
-| Webhook responde (rota registada) | HTTP 500 |
+| Webhook responde (rota registada) | OK (200) |
+| HTML gerado pelo pipeline | OK |
+| XSS neutralizado na saida REAL | OK |
+| safeUrl processou a imagem (escapeAttr ok) | OK |
+| Typo corrigido na saida REAL | OK |
+| Copy do Gemini (nao fallback estatico) | OK |
 | Workflow n8n versionado no Git | OK |
 
 <!-- AUTO:END -->
