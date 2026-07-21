@@ -160,3 +160,4 @@ git add -A && git commit -m "state: <resumo factual>" && git push
 
 - 2ª violação da regra SQLite, mesmo sintoma (404). A regra não tem exceções, nem para credenciais.
 
+
