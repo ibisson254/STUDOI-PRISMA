@@ -163,3 +163,4 @@ git add -A && git commit -m "state: <resumo factual>" && git push
 
 
 
+
