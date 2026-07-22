@@ -1,20 +1,20 @@
-# STATE.md — PRISMA STUDIO
+ï»¿# STATE.md ï¿½ PRISMA STUDIO
 
 > **Este ficheiro tem dois blocos com donos diferentes.**
-> **`[AUTO]`** — escrito pelo `verify.sh` contra o servidor real. **NENHUM agente ou humano edita isto à mão.**
-> **`[MANUAL]`** — narrativa da sessão. Escrito pelo agente antes de terminar.
+> **`[AUTO]`** ï¿½ escrito pelo `verify.sh` contra o servidor real. **NENHUM agente ou humano edita isto ï¿½ mï¿½o.**
+> **`[MANUAL]`** ï¿½ narrativa da sessï¿½o. Escrito pelo agente antes de terminar.
 >
-> Se o bloco MANUAL disser uma coisa e o bloco AUTO disser outra, **o AUTO tem razão**. Para e reporta.
+> Se o bloco MANUAL disser uma coisa e o bloco AUTO disser outra, **o AUTO tem razï¿½o**. Para e reporta.
 
 ---
 
 <!-- AUTO:START -->
 ## [AUTO] Verdade de terreno
 
-> Gerado por `verify.ps1` â€” **nao editar a mao**.
-> **Verificado em:** 2026-07-18T02:13:06+01:00 | **Servidor:** `161.35.19.139` | **Commit:** `761d403`
+> Gerado por `verify.ps1` Ã¢â‚¬â€ **nao editar a mao**.
+> **Verificado em:** 2026-07-22T07:52:14+01:00 | **Servidor:** `161.35.19.139` | **Commit:** `3f4ce4a`
 
-Sem falhas criticas. 3 pendencia(s) conhecida(s).
+Sem falhas criticas. 4 pendencia(s) conhecida(s).
 
 | Item | Estado |
 |---|---|
@@ -26,13 +26,13 @@ Sem falhas criticas. 3 pendencia(s) conhecida(s).
 | Backup cifrado existe no servidor | OK |
 | Backup replicado FORA do servidor | OK |
 | Restauracao ja foi testada | PENDENTE |
-| Data do ultimo backup | `2026-07-18` |
+| Data do ultimo backup | `2026-07-22` |
 | Modelo Gemini configurado | OK `gemini-3.5-flash` |
 | escapeHtml presente no compilador | OK |
 | escapeAttr presente (safeUrl depende dela) | OK |
 | responseSchema (structured output) ativo | OK |
 | Typo BEM-VDO corrigido | OK |
-| Workflows registados (sem duplicados) | OK (1) |
+| Workflows registados (sem duplicados) | 5 workflows - DUPLICADO? |
 | Error Workflow configurado (Sprint 3) | PENDENTE |
 | Webhook responde (rota registada) | OK (200) |
 | HTML gerado pelo pipeline | OK |
@@ -46,108 +46,169 @@ Sem falhas criticas. 3 pendencia(s) conhecida(s).
 
 ---
 
-## [MANUAL] Sprint 0 — Proteção do Ativo
+## [MANUAL] Sprint 0 ï¿½ Proteï¿½ï¿½o do Ativo
 
 > Marca `[x]` **apenas** depois de o `verify.sh` confirmar.
 
-- [x] **0. Rotação de credenciais** — chave ed25519 ativa; `PasswordAuthentication no` + `PermitRootLogin prohibit-password` aplicados; 25 scripts com password hardcoded eliminados. **Relatório de intrusão: SEM intrusos** (2473 tentativas falhadas = ruído de bots; todos os logins aceites do IP do operador `213.22.159.91`).
-- [x] **1. Firewall + fechar porta 5678** — UFW ativo (22/80/443); n8n em `127.0.0.1:5678`; NGINX proxia apenas `/webhook/`; painel só por túnel SSH.
-- [x] **2. Backup** — script + cron (03:00) + GPG AES-256 + rotação 7 dias. Replicação off-site para `github.com/ibisson254/prisma-backups` via deploy key ed25519 (write access). Push confirmado em 2026-07-16.
-- [~] **3. Escaping HTML** — `escapeHtml()`, `escapeAttr()` e `safeUrl()` presentes no Compilador Prisma (confirmado no código do nó Code); typo `BEM-VDO` corrigido; limite de 64 chars no nome do ficheiro. ?? **E2E PENDENTE por quota 429 — não confirmado em runtime.**
-- [~] **4. Gemini 2.5 Flash + responseSchema** — `models/gemini-2.5-flash`, `temperature 0.85`, `maxOutputTokens 512`, schema `{headline, subheadline}`. Nó HTTP Request configurado com credencial `httpHeaderAuth`. ?? **E2E PENDENTE por quota 429.**
-- [x] **5. Workflow no Git** — `n8n/tally-onboarding.json` exportado do servidor e commitado. Git espelha o servidor.
+- [x] **0. Rotaï¿½ï¿½o de credenciais** ï¿½ chave ed25519 ativa; `PasswordAuthentication no` + `PermitRootLogin prohibit-password` aplicados; 25 scripts com password hardcoded eliminados. **Relatï¿½rio de intrusï¿½o: SEM intrusos** (2473 tentativas falhadas = ruï¿½do de bots; todos os logins aceites do IP do operador `213.22.159.91`).
+- [x] **1. Firewall + fechar porta 5678** ï¿½ UFW ativo (22/80/443); n8n em `127.0.0.1:5678`; NGINX proxia apenas `/webhook/`; painel sï¿½ por tï¿½nel SSH.
+- [x] **2. Backup** ï¿½ script + cron (03:00) + GPG AES-256 + rotaï¿½ï¿½o 7 dias. Replicaï¿½ï¿½o off-site para `github.com/ibisson254/prisma-backups` via deploy key ed25519 (write access). Push confirmado em 2026-07-16.
+- [~] **3. Escaping HTML** ï¿½ `escapeHtml()`, `escapeAttr()` e `safeUrl()` presentes no Compilador Prisma (confirmado no cï¿½digo do nï¿½ Code); typo `BEM-VDO` corrigido; limite de 64 chars no nome do ficheiro. ?? **E2E PENDENTE por quota 429 ï¿½ nï¿½o confirmado em runtime.**
+- [~] **4. Gemini 2.5 Flash + responseSchema** ï¿½ `models/gemini-2.5-flash`, `temperature 0.85`, `maxOutputTokens 512`, schema `{headline, subheadline}`. Nï¿½ HTTP Request configurado com credencial `httpHeaderAuth`. ?? **E2E PENDENTE por quota 429.**
+- [x] **5. Workflow no Git** ï¿½ `n8n/tally-onboarding.json` exportado do servidor e commitado. Git espelha o servidor.
 
 ---
 
-## ?? [MANUAL] BLOCKERS — Sprint 0 NÃO está fechado
+## ?? [MANUAL] BLOCKERS ï¿½ Sprint 0 Nï¿½O estï¿½ fechado
 
 ### A/B. Workflow e Compilador (Tecnicamente Resolvidos, Pendente 429)
-O workflow foi limpo, reconfigurado com um nó `Prepara Gemini Payload` (para evitar parsing errors inline), os headers foram corrigidos, e as funções de sanitização (`escapeAttr`) estão injetadas e ativas.
-O pipeline processa corretamente o Webhook e chega à chamada do Gemini, mas bate na quota da API (**HTTP 429 Too Many Requests**).
+O workflow foi limpo, reconfigurado com um nï¿½ `Prepara Gemini Payload` (para evitar parsing errors inline), os headers foram corrigidos, e as funï¿½ï¿½es de sanitizaï¿½ï¿½o (`escapeAttr`) estï¿½o injetadas e ativas.
+O pipeline processa corretamente o Webhook e chega ï¿½ chamada do Gemini, mas bate na quota da API (**HTTP 429 Too Many Requests**).
 *Assim que a quota resetar ou houver upgrade (billing), correr `/root/scripts/test-e2e.sh` para fechar o blocker.*
 
 ### C. Backup off-site ? FECHADO
 Repo privado `github.com/ibisson254/prisma-backups` criado. Deploy key `ed25519` com write access adicionada. Push confirmado sem erros em 2026-07-16.
-Backup completo (BD + config + workflows + builds) cifrado GPG ? push automático no cron das 03:00.
+Backup completo (BD + config + workflows + builds) cifrado GPG ? push automï¿½tico no cron das 03:00.
 
 ### Menores
-- **Dois workflows com o mesmo nome** (`66d5ac7f8c71179f` e `tally-onboarding-wf`). Apagar o órfão.
-- Password de root ainda por trocar (baixa urgência — password auth desativado).
+- **Dois workflows com o mesmo nome** (`66d5ac7f8c71179f` e `tally-onboarding-wf`). Apagar o ï¿½rfï¿½o.
+- Password de root ainda por trocar (baixa urgï¿½ncia ï¿½ password auth desativado).
 
 ---
 
 ## ? [MANUAL] PERGUNTA EM ABERTO
 
-> **O "Projeto Raízes" alguma vez foi gerado a partir de uma submissão REAL do Tally, ou só por execução manual dentro do n8n?**
+> **O "Projeto Raï¿½zes" alguma vez foi gerado a partir de uma submissï¿½o REAL do Tally, ou sï¿½ por execuï¿½ï¿½o manual dentro do n8n?**
 
-A auditoria e o relatório do Sprint 0 dizem ambos que a rota do webhook nunca esteve registada. Se for esse o caso, **a PoC "zero-click" pode nunca ter corrido de ponta a ponta** — e isso muda o que consideramos validado.
+A auditoria e o relatï¿½rio do Sprint 0 dizem ambos que a rota do webhook nunca esteve registada. Se for esse o caso, **a PoC "zero-click" pode nunca ter corrido de ponta a ponta** ï¿½ e isso muda o que consideramos validado.
 
 ---
 
-## [MANUAL] Onde parámos
+## [MANUAL] Onde parï¿½mos
 
-**Última sessão:** 2026-07-21 00:10 · por: agente (Antigravity)
-**O que aconteceu:** Fase 6 executada. O webhook do agendamento foi configurado, a credencial Brevo inserida pela via segura (API REST, sem violação do SQLite), os scripts de limpeza da BD foram removidos de \scratch/\ para segurança, e o fluxo foi importado com sucesso.
-**BLOCKER FASE 6:** A API do Brevo retornou 201 (aceite na fila) e registou a execução com MessageId oficial (ex: <202607202251.77276665287@smtp-relay.mailin.fr>), MAS o dashboard rejeitou o envio posterior com: \Sending rejected because the sender leads@prismastudio.pt is not valid.\. Isto ocorre porque o domínio prismastudio.pt não está configurado e o sender não está verificado na conta Brevo. O workflow já foi adaptado para ler das variáveis de ambiente n8n (\{{ $env.BREVO_SENDER_EMAIL || 'leads@prismastudio.pt' }}\) para trocar o remetente sem reimportar o código. A Fase 6 FICA PENDENTE de verificação de sender e chegada do e-mail à caixa de entrada do operador.
+**ï¿½ltima sessï¿½o:** 2026-07-22 07:47 ï¿½ por: agente (Claude Code)
+**O que aconteceu:** Fase 6 confirmada como PENDENTE (nï¿½o fechada) e registada formalmente na secï¿½ï¿½o "Motor v2" acima. Executada a Fase 7 (SPEC-MOTOR-V2-IMOBILIARIO.md ï¿½9): disparado o webhook real `imovel-landing` 3 vezes com dados fictï¿½cios de 3 imï¿½veis deliberadamente diferentes (praia/luxo, urbano/premium, rural/carï¿½ter), sem logo. As 3 landings foram publicadas de facto no servidor, verificadas via sweep de placeholders, contagem de hero-block/h1, presenï¿½a de lightbox/vï¿½deo/formulï¿½rio/ficha tï¿½cnica/banner, e auditadas com Lighthouse mobile real (Chrome headless local contra o servidor). Resultado completo na secï¿½ï¿½o "Fase 7" acima, incluindo uma **falha do sistema anti-genï¿½rico** (2 dos 3 imï¿½veis saï¿½ram com o mesmo arquï¿½tipo+fontes) e **performance mobile abaixo do alvo ?90 nos 3** (74/70/73), com causas jï¿½ conhecidas (HTTP puro, Tailwind CDN dev-only, imagens nï¿½o otimizadas, droplet de 1GB).
+**BLOCKER FASE 6 (inalterado):** A API do Brevo retornou 201 (aceite na fila) e registou a execuï¿½ï¿½o com MessageId oficial (ex: <202607202251.77276665287@smtp-relay.mailin.fr>), MAS o dashboard rejeitou o envio posterior com: \Sending rejected because the sender leads@prismastudio.pt is not valid.\. Isto ocorre porque o domï¿½nio prismastudio.pt nï¿½o estï¿½ configurado e o sender nï¿½o estï¿½ verificado na conta Brevo. O workflow jï¿½ foi adaptado para ler das variï¿½veis de ambiente n8n (\{{ $env.BREVO_SENDER_EMAIL || 'leads@prismastudio.pt' }}\) para trocar o remetente sem reimportar o cï¿½digo. A Fase 6 FICA PENDENTE de verificaï¿½ï¿½o de sender e chegada do e-mail ï¿½ caixa de entrada do operador. **Nï¿½o bloqueou a Fase 7** (que nï¿½o depende de e-mail).
 
-### Pendências fora do Sprint 0
-- **HTTPS** — bloqueado: Let's Encrypt não emite para IPs. Precisa de domínio.
-- **Classificador de risco** — Sprint 1
-- **HMAC no webhook, Error Workflow, retry** — Sprint 3
-- **Supabase site_state** — Sprint 3. Sem isto, alterações de cliente são tecnicamente impossíveis.
+### Pendï¿½ncias fora do Sprint 0
+- **HTTPS** ï¿½ bloqueado: Let's Encrypt nï¿½o emite para IPs. Precisa de domï¿½nio.
+- **Classificador de risco** ï¿½ Sprint 1
+- **HMAC no webhook, Error Workflow, retry** ï¿½ Sprint 3
+- **Supabase site_state** ï¿½ Sprint 3. Sem isto, alteraï¿½ï¿½es de cliente sï¿½o tecnicamente impossï¿½veis.
 
-## ?? [MANUAL] PRÓXIMO PASSO (um só)
+## ?? [MANUAL] PRï¿½XIMO PASSO (um sï¿½)
 
-> **Sprint 1 — Domínios e Otimização do Pipeline.**
+> **Decisï¿½o do operador sobre as 3 landings da Fase 7 (ver evidï¿½ncias na secï¿½ï¿½o "Fase 7" acima) antes de qualquer avanï¿½o.**
 >
-> NOTA: O teste E2E pendente do Sprint 0.1 (`/root/scripts/test-e2e.sh`) deverá ser executado com sucesso e o GitHub Backup ativado antes de encerrar totalmente o Sprint 0, mas podemos avançar para as pendências de domínio entretanto.
+> Duas falhas concretas para o operador julgar: (1) 2 dos 3 imï¿½veis saï¿½ram com o mesmo arquï¿½tipo+fontes (falha do anti-genï¿½rico); (2) Lighthouse mobile 70ï¿½74 de performance, abaixo do alvo ?90 nos 3, por causas jï¿½ conhecidas (HTTP puro, Tailwind CDN dev-only, imagens sem otimizaï¿½ï¿½o). Se aprovado apesar destas falhas, o prï¿½ximo passo tï¿½cnico natural ï¿½ resolver o CSS compilado (remover Tailwind CDN) e otimizaï¿½ï¿½o de imagens antes de qualquer link a cliente real ï¿½ que jï¿½ estï¿½ bloqueado por HTTPS/domï¿½nio (ver bloco (a) acima). Sprint 1 (domï¿½nios) continua como pendï¿½ncia paralela, nï¿½o dependente desta decisï¿½o.
 
-Ficheiro de referência: `sprint-1-dominios.md`
+Ficheiro de referï¿½ncia: `sprint-1-dominios.md`
 
 ---
 
-## [MANUAL] Motor v2 — Imobiliário de Luxo (SPEC-MOTOR-V2-IMOBILIARIO.md)
+## [MANUAL] Motor v2 ï¿½ Imobiliï¿½rio de Luxo (SPEC-MOTOR-V2-IMOBILIARIO.md)
 
-**Sessão:** 2026-07-18/19 · Fases 1-5 executadas e aprovadas pelo operador (Fase 5 aprovada explicitamente em 2026-07-19).
+**Sessï¿½o:** 2026-07-18/19 ï¿½ Fases 1-5 executadas e aprovadas pelo operador (Fase 5 aprovada explicitamente em 2026-07-19).
 
 ### Estado
-- Fase 1: `src/imovel_template.html` — 3 arquétipos (cinematic/editorial/gallery_first), CSS vars, form agendamento. ?
-- Fase 2: prompt+schema Gemini v2, workflow `imovel-landing-wf` (novo, `tally-onboarding-wf` não tocado). Modelo `gemini-3.5-flash` validado contra `/models`. ?
-- Fase 3: Compilador v2 — sweep de placeholders, isolamento de arquétipo (1 hero/1 h1), XSS testado em todos os campos. ?
-- Fase 4: `docs/SCHEMA_TALLY_IMOVEL.md` — spec do formulário para o operador construir no Tally.so (sem API do Tally neste ambiente). Testado com envelope Tally real (FILE_UPLOAD, CHECKBOXES, vídeo). ?
-- Fase 5: Deploy via NGINX/DigitalOcean (decisão do operador — sem token Cloudflare disponível); banner de countdown; cron de expiração horário (`imovel-cron-expiracao-wf`); `state.json` persistido por landing; ficheiros usam `{slug}-{token}.html` com token não determinístico (V1 confirmado); reativação sem chamar o Gemini (`imovel-reativar-wf`, V2 confirmado — diff idêntico exceto banner). ?
+- Fase 1: `src/imovel_template.html` ï¿½ 3 arquï¿½tipos (cinematic/editorial/gallery_first), CSS vars, form agendamento. ?
+- Fase 2: prompt+schema Gemini v2, workflow `imovel-landing-wf` (novo, `tally-onboarding-wf` nï¿½o tocado). Modelo `gemini-3.5-flash` validado contra `/models`. ?
+- Fase 3: Compilador v2 ï¿½ sweep de placeholders, isolamento de arquï¿½tipo (1 hero/1 h1), XSS testado em todos os campos. ?
+- Fase 4: `docs/SCHEMA_TALLY_IMOVEL.md` ï¿½ spec do formulï¿½rio para o operador construir no Tally.so (sem API do Tally neste ambiente). Testado com envelope Tally real (FILE_UPLOAD, CHECKBOXES, vï¿½deo). ?
+- Fase 5: Deploy via NGINX/DigitalOcean (decisï¿½o do operador ï¿½ sem token Cloudflare disponï¿½vel); banner de countdown; cron de expiraï¿½ï¿½o horï¿½rio (`imovel-cron-expiracao-wf`); `state.json` persistido por landing; ficheiros usam `{slug}-{token}.html` com token nï¿½o determinï¿½stico (V1 confirmado); reativaï¿½ï¿½o sem chamar o Gemini (`imovel-reativar-wf`, V2 confirmado ï¿½ diff idï¿½ntico exceto banner). ?
+- **Fase 6: PENDENTE (bloqueada, nï¿½o fechada).** Webhook de agendamento (`imovel-agendamento-wf`) configurado, credencial Brevo inserida pela via segura (API REST), workflow importado com sucesso. A API do Brevo aceitou o pedido (HTTP 201, MessageId oficial devolvido), **mas o e-mail nunca chegou ï¿½ caixa do operador** ï¿½ o dashboard Brevo rejeitou o envio a jusante com `Sending rejected because the sender leads@prismastudio.pt is not valid`, porque o domï¿½nio `prismastudio.pt` nï¿½o estï¿½ configurado/verificado na conta Brevo. O workflow jï¿½ lï¿½ o remetente de `$env.BREVO_SENDER_EMAIL` para permitir trocar sem reimportar. **Nï¿½o fechar esta fase atï¿½ um envio real ser confirmado na caixa de entrada.** Nï¿½o bloqueia a Fase 7 (que nï¿½o depende de e-mail).
 
-### ?? (a) Pré-requisito de venda — BLOQUEANTE antes de qualquer link a cliente real
+### ?? (a) Prï¿½-requisito de venda ï¿½ BLOQUEANTE antes de qualquer link a cliente real
 > **Nenhum link de preview pode ser entregue a um cliente/lead real enquanto o hosting for `http://161.35.19.139/...`.**
 
 Falta, por esta ordem, antes de qualquer uso comercial:
-1. **Domínio de preview** (ex.: um subdomínio próprio tipo `preview.prismastudio.pt` ou a migração para Cloudflare Pages já prevista na spec) — o IP nu não é apresentável a um cliente pagante nem a um lead de imobiliário de luxo.
-2. **HTTPS** — atualmente impossível (Let's Encrypt não emite para IPs; SSL/HTTPS já consta como `PENDENTE` no bloco `[AUTO]` acima, bloqueado por falta de domínio). Um formulário de agendamento com dados pessoais (nome, telefone, email) servido em HTTP puro é uma falha de confiança e de conformidade.
+1. **Domï¿½nio de preview** (ex.: um subdomï¿½nio prï¿½prio tipo `preview.prismastudio.pt` ou a migraï¿½ï¿½o para Cloudflare Pages jï¿½ prevista na spec) ï¿½ o IP nu nï¿½o ï¿½ apresentï¿½vel a um cliente pagante nem a um lead de imobiliï¿½rio de luxo.
+2. **HTTPS** ï¿½ atualmente impossï¿½vel (Let's Encrypt nï¿½o emite para IPs; SSL/HTTPS jï¿½ consta como `PENDENTE` no bloco `[AUTO]` acima, bloqueado por falta de domï¿½nio). Um formulï¿½rio de agendamento com dados pessoais (nome, telefone, email) servido em HTTP puro ï¿½ uma falha de confianï¿½a e de conformidade.
 
-**Isto não bloqueia os testes internos da Fase 7** (o operador aprova por link HTTP interno), mas **bloqueia qualquer entrega a cliente/lead real** e deve ser resolvido antes do Sprint de Pagamento (Ifthenpay/domínio), já adiado para depois da Fase 7 por decisão anterior do operador.
+**Isto nï¿½o bloqueia os testes internos da Fase 7** (o operador aprova por link HTTP interno), mas **bloqueia qualquer entrega a cliente/lead real** e deve ser resolvido antes do Sprint de Pagamento (Ifthenpay/domï¿½nio), jï¿½ adiado para depois da Fase 7 por decisï¿½o anterior do operador.
 
-### (b) Limpeza pendente — workflows temporários no n8n
-5 workflows de teste, todos **inativos** (unpublished, sem rota registada — zero risco em produção), criados durante a validação de capacidades da instância (Code node HTTP/fs/exec, cron, helpers). Precisam de remoção manual pela UI do n8n — não há comando CLI de delete no n8n 2.29.10, e por regra do AGENT.md não se edita o SQLite diretamente:
+### (b) Limpeza pendente ï¿½ workflows temporï¿½rios no n8n
+5 workflows de teste, todos **inativos** (unpublished, sem rota registada ï¿½ zero risco em produï¿½ï¿½o), criados durante a validaï¿½ï¿½o de capacidades da instï¿½ncia (Code node HTTP/fs/exec, cron, helpers). Precisam de remoï¿½ï¿½o manual pela UI do n8n ï¿½ nï¿½o hï¿½ comando CLI de delete no n8n 2.29.10, e por regra do AGENT.md nï¿½o se edita o SQLite diretamente:
 
-| ID | Nome | Propósito (já cumprido) |
+| ID | Nome | Propï¿½sito (jï¿½ cumprido) |
 |---|---|---|
 | `temp-test-code-http-wf` | TEMP - Test Code HTTP | validar `this.helpers.httpRequest` em Code node |
-| `temp-test-fs-wf` | TEMP - Test FS Code | confirmar que `fs` está bloqueado no sandbox |
-| `temp-test-exec-wf` | TEMP - Test Exec Command | confirmar que o nó Execute Command não está instalado |
-| `temp-test-cron-wf` | TEMP - Test Cron Logic | validar a lógica de expiração antes do Schedule Trigger real |
-| `temp-probe-helpers-wf` | TEMP - Probe Helpers | listar `this.helpers` disponíveis (não há UUID/crypto) |
+| `temp-test-fs-wf` | TEMP - Test FS Code | confirmar que `fs` estï¿½ bloqueado no sandbox |
+| `temp-test-exec-wf` | TEMP - Test Exec Command | confirmar que o nï¿½ Execute Command nï¿½o estï¿½ instalado |
+| `temp-test-cron-wf` | TEMP - Test Cron Logic | validar a lï¿½gica de expiraï¿½ï¿½o antes do Schedule Trigger real |
+| `temp-probe-helpers-wf` | TEMP - Probe Helpers | listar `this.helpers` disponï¿½veis (nï¿½o hï¿½ UUID/crypto) |
 
-**Ação:** apagar os 5 pela UI (`Workflows` ? selecionar ? Delete) numa próxima sessão com acesso ao painel.
+**Aï¿½ï¿½o:** apagar os 5 pela UI (`Workflows` ? selecionar ? Delete) numa prï¿½xima sessï¿½o com acesso ao painel.
 
-### Achados de segurança/engenharia desta sessão
-- **Chave API Gemini em texto simples** em `scratch/list_models2.sh` (linha 2) — não commitada no Git, mas em disco. Recomenda-se rotação e remoção.
-- **`state.json` fica publicamente acessível** em `/var/www/prisma-builds/*.state.json` (mesmo document root do NGINX que serve os `.html`) — contém NIF, email e WhatsApp do corretor. A migração para Cloudflare Pages/Supabase deve tirar isto do document root público.
-- Tokens de ficheiro (`{slug}-{token}.html`) usam `Date.now()+Math.random()` — não criptograficamente seguros (nem `crypto` nem `require('crypto')` estão disponíveis no sandbox do Code node deste n8n). Suficiente para não serem adivinháveis a partir do nome do imóvel/imobiliária num preview de 24h, mas não é um limite de segurança forte — reavaliar se o modelo de negócio precisar de mais garantias.
-- `this.helpers.getBinaryDataBuffer`/`prepareBinaryData` são a forma correta e robusta de ler/escrever binários em Code nodes nesta instância (armazenamento em modo `filesystem-v2`) — recomendo que o `tally-onboarding-wf` (v1) adote o mesmo padrão como blindagem (não alterado nesta sessão, por instrução explícita de não o tocar).
+### Fase 7 ï¿½ As 3 landings de prova (executada 2026-07-22)
+
+Disparado o webhook real (`POST http://161.35.19.139/webhook/imovel-landing`) com 3 imï¿½veis fictï¿½cios deliberadamente diferentes (praia/luxo, urbano/premium, rural/carï¿½ter). Sem logo nos 3 (testa o wordmark). Verificaï¿½ï¿½o feita a partir do HTML e `state.json` **realmente publicados no servidor**, nï¿½o de uma simulaï¿½ï¿½o.
+
+**Links (preview HTTP, expiram 24h apï¿½s 2026-07-22T06:3x):**
+1. Comporta: `http://161.35.19.139/moradia-t5-frente-ao-mar-comporta-mrvpfgr76j2b4v5h27zt.html`
+2. Prï¿½ncipe Real: `http://161.35.19.139/penthouse-t3-com-terraco-principe-real-lisboa-mrvpgjp9b2ikw2pqzk9x.html`
+3. Alentejo: `http://161.35.19.139/quinta-restaurada-com-lagar-alentejo-mrvpi8tpugapzmgzl3wa.html`
+
+**Critï¿½rios de aceitaï¿½ï¿½o (ï¿½9):**
+| Critï¿½rio | Resultado |
+|---|---|
+| 3 completas, zero placeholders/fallback | ? Sweep `{{...}}` e `<!--IF:...-->` limpo nos 3; compilador tambï¿½m validou hero-block=1 e h1=1 nos 3 (falharia a execuï¿½ï¿½o caso contrï¿½rio) |
+| 3 visualmente distintas | ? **FALHA PARCIAL** ï¿½ ver abaixo |
+| Galeria com lightbox funcional | ? 6/8/6 fotos, `#lightbox` presente nos 3 |
+| Vï¿½deo embutido no imï¿½vel 2 | ? `<iframe src="https://www.youtube.com/embed/jNQXAC9IVRw">` confirmado no HTML |
+| Ficha tï¿½cnica preenchida | ? preï¿½o/tipologia/ï¿½rea/quartos/wc presentes nos 3 |
+| Formulï¿½rio de agendamento | ? presente, `data-endpoint="http://161.35.19.139/webhook/agendar-visita"` |
+| Headline usa detalhe ï¿½nico | ? confirmado nos 3 (ver headlines abaixo) |
+| Lighthouse mobile ? 90 | ? **FALHA** ï¿½ ver scores abaixo |
+| Banner de preview com countdown | ? `#preview-banner` presente nos 3 |
+
+**?? FALHA DO SISTEMA ANTI-GENï¿½RICO (reportada por regra explï¿½cita do teste):** Imï¿½vel 1 (Comporta) e Imï¿½vel 2 (Prï¿½ncipe Real) saï¿½ram ambos com arquï¿½tipo `cinematic` **e** o mesmo par de fontes `Marcellus + Mulish`. As paletas diferem (areia/azul-atlï¿½ntico vs. grafite/dourado) e o conteï¿½do ï¿½ claramente distinto, mas a estrutura visual (hero full-screen) e a tipografia sï¿½o idï¿½nticas entre dois imï¿½veis de posicionamento muito diferente (praia vs. penthouse urbana). Imï¿½vel 3 (Alentejo) saiu distinto (`editorial`, Cormorant Garamond + Inter). Com pool de 3 arquï¿½tipos e 5 pares de fontes, a taxa de colisï¿½o em 3 geraï¿½ï¿½es nï¿½o ï¿½ desprezï¿½vel â€” **recomenda-se** ou (a) aumentar a temperatura/pool, ou (b) o compilador impor no-repeat de arquï¿½tipo+fontes dentro da mesma sessï¿½o/imobiliï¿½ria, antes de qualquer uso comercial com mï¿½ltiplos imï¿½veis da mesma agncia.
+
+**Direction sheets:**
+
+| | Imï¿½vel 1 ï¿½ Comporta | Imï¿½vel 2 ï¿½ Prï¿½ncipe Real | Imï¿½vel 3 ï¿½ Alentejo |
+|---|---|---|---|
+| Arquï¿½tipo | cinematic | cinematic | editorial |
+| Fontes | Marcellus + Mulish | Marcellus + Mulish | Cormorant Garamond + Inter |
+| Paleta | bg #FAF8F5 / ink #14213D / accent #C5A880 (areia + azul-atlï¿½ntico) | bg #121212 / ink #F4F4F4 / accent #C5A880 (grafite + dourado) | bg #FAF6F0 / ink #1C2421 / accent #A35738 (terracota + oliva) |
+| Detalhe ï¿½nico no headline | piscina de ï¿½gua salgada alinhada com o pï¿½r do sol | terraï¿½o de 80 mï¿½ com vista sobre o Tejo e o castelo | lagar de azeite do sï¿½culo XIX restaurado e funcional |
+| Justif. arquï¿½tipo | "Valorizar a escala monumental da 1ï¿½ linha de mar [...] emulando a sensaï¿½ï¿½o de imersï¿½o total" | "Potenciar o forte impacto visual do terraï¿½o [...] e a presenï¿½a de vï¿½deo promocional" | "Narrativa visual pausada e sofisticada [...] simula o design de uma revista de arquitetura" |
+
+**Headlines + subheadlines:**
+1. **Comporta:** "Uma piscina de ï¿½gua salgada alinhada com o pï¿½r do sol" / "Desenhada sob a tradicional arquitetura de madeira e cal, esta moradia T5 oferece uma transiï¿½ï¿½o invisï¿½vel entre o design minimalista e as dunas intocadas do Atlï¿½ntico."
+2. **Prï¿½ncipe Real:** "Onde a vida se estende num terraï¿½o de 80 mï¿½ com vista sobre o Tejo e o castelo" / "Uma penthouse T3 meticulosamente desenhada num edifï¿½cio pombalino reabilitado, combinando a heranï¿½a histï¿½rica com o conforto contemporï¿½neo."
+3. **Alentejo:** "Uma heranï¿½a viva: Quinta histï¿½rica com lagar de azeite do sï¿½culo XIX restaurado e funcional" / "Com quatro hectares de terra fï¿½rtil, esta propriedade de 1890 une o rigor da preservaï¿½ï¿½o contemporï¿½nea ï¿½ tradiï¿½ï¿½o de um olival centenï¿½rio em plena produï¿½ï¿½o."
+
+**Lighthouse mobile (Chrome headless local, simulated throttling, contra o servidor real):**
+| | Performance | Accessibility | Best Practices | SEO |
+|---|---|---|---|---|
+| Comporta | **74** | 96 | 78 | 100 |
+| Prï¿½ncipe Real | **70** | 100 | 74 | 100 |
+| Alentejo | **73** | 96 | 56 | 100 |
+
+**Performance fica abaixo do alvo (?90) nos 3 ï¿½ causas identificadas nos audits, todas conhecidas e jï¿½ documentadas:**
+- `is-on-https`/`redirects-http` = 0 nos 3 (esperado: hosting HTTP puro no IP, jï¿½ bloqueante para cliente real por decisï¿½o anterior, ver bloco (a) acima)
+- Tailwind via CDN (`<script src="https://cdn.tailwindcss.com">`) marcado no prï¿½prio template como "DEV ONLY: substituir por CSS compilado em produï¿½ï¿½o" ï¿½ maior contribuidor para `render-blocking-insight` e `unused-javascript`
+- Imagens Unsplash/Wikimedia servidas no tamanho original sem `srcset`/responsive ï¿½ `image-delivery-insight` estima 1.8ï¿½2.1 MB de poupanï¿½a possï¿½vel por pï¿½gina
+- `document-latency-insight` (~2.3s) consistente com o droplet de 1 vCPU / 1 GB RAM + swap
+- Best Practices do Alentejo (56) mais baixo por `inspector-issues` (avisos no DevTools) alï¿½m dos itens comuns acima
+- Nenhuma destas causas ï¿½ nova: HTTPS jï¿½ consta `PENDENTE` no bloco `[AUTO]`, e o CSS compilado em produï¿½ï¿½o jï¿½ estï¿½ assinalado como pendï¿½ncia no prï¿½prio template desde a Fase 1.
+
+**Placeholder sweep (evidï¿½ncia):** `grep -oE '\{\{[^}]*\}\}'` e `grep -oE '<!--/?IF:[a-z_]+-->'` nos 3 HTML publicados devolveram **zero resultados**. `hero-block` count = 1 e `<h1>` count = 1 nos 3 (o compilador teria abortado a execuï¿½ï¿½o e nada seria publicado caso contrï¿½rio ï¿½ confirmado no cï¿½digo, nï¿½o apenas assumido).
+
+**Observaï¿½ï¿½o menor (nï¿½o bloqueante):** o imï¿½vel 2 (Prï¿½ncipe Real) devolveu parte da ficha tï¿½cnica/galeria sem acentuaï¿½ï¿½o portuguesa ("Preco", "Area Util") enquanto os imï¿½veis 1 e 3 vieram corretamente acentuados. Copy do LLM, nï¿½o do compilador ï¿½ nï¿½o houve fallback estï¿½tico, mas vale monitorizar a consistï¿½ncia de diacrï¿½ticos do Gemini entre geraï¿½ï¿½es.
+
+**Conclusï¿½o Fase 7:** motor produz 3 landings tecnicamente completas, funcionalmente corretas (galeria, lightbox, vï¿½deo, formulï¿½rio, ficha tï¿½cnica, countdown) e sem placeholders â€” mas **nï¿½o** cumpre 2 dos 8 critï¿½rios de aceitaï¿½ï¿½o na sua forma mais estrita: diferenciaï¿½ï¿½o visual entre 2 dos 3 imï¿½veis (mesmo arquï¿½tipo+fontes) e performance mobile abaixo do alvo nos 3. Decisï¿½o de avanï¿½ar ou nï¿½o fica com o operador ï¿½ esta seï¿½ï¿½o contï¿½m as evidï¿½ncias para essa decisï¿½o, nï¿½o uma recomendaï¿½ï¿½o de aprovaï¿½ï¿½o.
+
+### Achados de seguranï¿½a/engenharia desta sessï¿½o
+- **Chave API Gemini em texto simples** em `scratch/list_models2.sh` (linha 2) ï¿½ nï¿½o commitada no Git, mas em disco. Recomenda-se rotaï¿½ï¿½o e remoï¿½ï¿½o.
+- **`state.json` fica publicamente acessï¿½vel** em `/var/www/prisma-builds/*.state.json` (mesmo document root do NGINX que serve os `.html`) ï¿½ contï¿½m NIF, email e WhatsApp do corretor. A migraï¿½ï¿½o para Cloudflare Pages/Supabase deve tirar isto do document root pï¿½blico.
+- Tokens de ficheiro (`{slug}-{token}.html`) usam `Date.now()+Math.random()` ï¿½ nï¿½o criptograficamente seguros (nem `crypto` nem `require('crypto')` estï¿½o disponï¿½veis no sandbox do Code node deste n8n). Suficiente para nï¿½o serem adivinhï¿½veis a partir do nome do imï¿½vel/imobiliï¿½ria num preview de 24h, mas nï¿½o ï¿½ um limite de seguranï¿½a forte ï¿½ reavaliar se o modelo de negï¿½cio precisar de mais garantias.
+- `this.helpers.getBinaryDataBuffer`/`prepareBinaryData` sï¿½o a forma correta e robusta de ler/escrever binï¿½rios em Code nodes nesta instï¿½ncia (armazenamento em modo `filesystem-v2`) ï¿½ recomendo que o `tally-onboarding-wf` (v1) adote o mesmo padrï¿½o como blindagem (nï¿½o alterado nesta sessï¿½o, por instruï¿½ï¿½o explï¿½cita de nï¿½o o tocar).
 
 ---
 
-## Protocolo de fim de sessão (obrigatório)
+## Protocolo de fim de sessï¿½o (obrigatï¿½rio)
 
 ```bash
 ./verify.sh                    # reescreve o bloco [AUTO]
@@ -156,9 +217,9 @@ git diff STATE.md              # o que mudou na REALIDADE
 git add -A && git commit -m "state: <resumo factual>" && git push
 ```
 
-**Uma sessão que não corre o `verify.sh` e não atualiza este ficheiro partiu a cadeia.**
+**Uma sessï¿½o que nï¿½o corre o `verify.sh` e nï¿½o atualiza este ficheiro partiu a cadeia.**
 
-- 2ª violação da regra SQLite, mesmo sintoma (404). A regra não tem exceções, nem para credenciais.
+- 2ï¿½ violaï¿½ï¿½o da regra SQLite, mesmo sintoma (404). A regra nï¿½o tem exceï¿½ï¿½es, nem para credenciais.
 
 
 

@@ -1,0 +1,175 @@
+{
+  "id": "imovel-reativar-wf",
+  "name": "Prisma - Reativar Landing",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "reativar-landing",
+        "responseMode": "lastNode",
+        "options": {}
+      },
+      "id": "webhook-reativar-1",
+      "name": "Webhook Reativar",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1.1,
+      "position": [
+        0,
+        300
+      ],
+      "webhookId": "c3e4d5f6-reativar-landing-0001"
+    },
+    {
+      "parameters": {
+        "fileSelector": "=/home/node/.n8n-files/builds/{{$json.body.stateFileName}}",
+        "options": {}
+      },
+      "id": "read-state-reativar-1",
+      "name": "Le State para Reativar",
+      "type": "n8n-nodes-base.readWriteFile",
+      "typeVersion": 1,
+      "position": [
+        200,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "\n// Lê o state.json existente — SEM chamar o Gemini — e prepara os dados\n// para o Compilador partilhado. Corre ANTES de ler o template (a leitura\n// de ficheiro seguinte substitui $json por inteiro, por isso este nó\n// devolve tudo em campos json próprios, referenciados depois por nome:\n// $('Extrai State e Prepara').item.json...\nconst stateBuffer = await this.helpers.getBinaryDataBuffer(0, 'data');\nlet state;\ntry {\n  state = JSON.parse(stateBuffer.toString('utf8'));\n} catch (e) {\n  throw new Error('REATIVA: state.json inválido, execução falhada.');\n}\nconst g = state.gemini_output;\nconst imovelRaw = state.imovel;\nconst REQUIRED_TOP = ['direction_sheet','identity','hero','imovel','galeria','localizacao','agendamento','seo'];\nfor (const k of REQUIRED_TOP) {\n  if (!g[k]) throw new Error('REATIVA: campo obrigatório \"' + k + '\" ausente no gemini_output guardado.');\n}\n\n// Logo — redescarrega os bytes (não é chamada ao Gemini, só a mesma imagem já usada)\nlet logoBase64 = '';\nlet logoMime = '';\nif (imovelRaw.logo) {\n  try {\n    const res = await this.helpers.httpRequest({ url: imovelRaw.logo, encoding: 'arraybuffer' });\n    logoBase64 = Buffer.from(res).toString('base64');\n    logoMime = imovelRaw.logo.toLowerCase().endsWith('.png') ? 'image/png'\n      : imovelRaw.logo.toLowerCase().endsWith('.svg') ? 'image/svg+xml'\n      : imovelRaw.logo.toLowerCase().endsWith('.webp') ? 'image/webp' : 'image/jpeg';\n  } catch (e) { /* sem logo utilizável, cai para wordmark */ }\n}\n\n// Meta (reutilizados do state.json — mesma URL, mesmo ficheiro; só o estado pode mudar)\nconst landingId = state.landing_id;\nconst expiresAt = state.expires_at;\nlet requestedEstado = null;\ntry { requestedEstado = $('Webhook Reativar').item.json.body.novoEstado; } catch (e) { /* trigger sem esse nome, mantém estado */ }\nconst estado = requestedEstado || state.estado;\nconst dominio = state.dominio || null;\n\nreturn [{ json: { g, imovelRaw, logoBase64, logoMime, landingId, expiresAt, estado, dominio } }];\n"
+      },
+      "id": "code-extrai-state-1",
+      "name": "Extrai State e Prepara",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        400,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "fileSelector": "/home/node/.n8n-files/templates/imovel_template.html",
+        "options": {}
+      },
+      "id": "read-template-reativar-1",
+      "name": "Le Template para Reativar",
+      "type": "n8n-nodes-base.readWriteFile",
+      "typeVersion": 1,
+      "position": [
+        600,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "\nfunction escapeHtml(unsafe) {\n  if (unsafe === undefined || unsafe === null) return '';\n  return String(unsafe).replace(/&/g, \"&amp;\").replace(/</g, \"&lt;\").replace(/>/g, \"&gt;\").replace(/\"/g, \"&quot;\").replace(/'/g, \"&#039;\");\n}\nfunction escapeAttr(unsafe) {\n  if (unsafe === undefined || unsafe === null) return '';\n  return String(unsafe).replace(/\"/g, \"&quot;\").replace(/'/g, \"&#039;\");\n}\nfunction safeUrl(unsafeUrl) {\n  if (!unsafeUrl) return '';\n  const u = String(unsafeUrl).trim();\n  if (u.startsWith('http://') || u.startsWith('https://')) return escapeAttr(u);\n  return '';\n}\nfunction toEmbedUrl(url) {\n  if (!url) return '';\n  const u = String(url).trim();\n  let m = u.match(/(?:youtube\\.com\\/watch\\?v=|youtu\\.be\\/|youtube\\.com\\/embed\\/)([a-zA-Z0-9_-]{6,})/);\n  if (m) return 'https://www.youtube.com/embed/' + m[1];\n  m = u.match(/vimeo\\.com\\/(?:video\\/)?(\\d+)/);\n  if (m) return 'https://player.vimeo.com/video/' + m[1];\n  return '';\n}\nfunction toNumericPrice(str) {\n  if (!str) return '';\n  const digits = String(str).replace(/[^\\d]/g, '');\n  return digits || '';\n}\nfunction slugify(str) {\n  return String(str || 'imovel').toLowerCase()\n    .normalize('NFD').replace(/[̀-ͯ]/g, '')\n    .replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').substring(0, 60) || 'imovel';\n}\nfunction isLowResImage(base64, mime) {\n  try {\n    const buf = Buffer.from(base64, 'base64');\n    if (mime === 'image/png' && buf.length > 24 && buf.readUInt32BE(0) === 0x89504e47) {\n      const width = buf.readUInt32BE(16);\n      const height = buf.readUInt32BE(20);\n      return width < 200 || height < 200;\n    }\n    if (mime === 'image/jpeg') {\n      let i = 2;\n      while (i < buf.length - 9) {\n        if (buf[i] !== 0xFF) { i++; continue; }\n        const marker = buf[i + 1];\n        if (marker >= 0xC0 && marker <= 0xC3) {\n          const height = buf.readUInt16BE(i + 5);\n          const width = buf.readUInt16BE(i + 7);\n          return width < 200 || height < 200;\n        }\n        const segLen = buf.readUInt16BE(i + 2);\n        i += 2 + segLen;\n      }\n    }\n  } catch (e) { /* formato não reconhecido (svg/webp) — não classifica como fraca */ }\n  return false;\n}\nfunction renderLoop(html, key, items) {\n  const escKey = key.replace('.', '\\\\.');\n  const re = new RegExp('\\\\{\\\\{#' + escKey + '\\\\}\\\\}([\\\\s\\\\S]*?)\\\\{\\\\{\\\\/' + escKey + '\\\\}\\\\}');\n  const m = html.match(re);\n  if (!m) return html;\n  const block = m[1];\n  const rendered = (items || []).map(item => {\n    let s = block;\n    for (const k in item) {\n      s = s.split('{{' + k + '}}').join(item[k]);\n    }\n    return s;\n  }).join('');\n  return html.replace(re, rendered);\n}\nfunction renderIf(html, key, condition) {\n  const re = new RegExp('<!--IF:' + key + '-->([\\\\s\\\\S]*?)<!--/IF:' + key + '-->', 'g');\n  return html.replace(re, condition ? '$1' : '');\n}\nfunction stripHeroArchetypes(html, chosen) {\n  const all = ['cinematic', 'editorial', 'gallery_first'];\n  for (const name of all) {\n    if (name === chosen) continue;\n    const re = new RegExp('<section class=\"hero-block[^\"]*\"[^>]*data-archetype-hero=\"' + name + '\"[\\\\s\\\\S]*?<\\\\/section>');\n    html = html.replace(re, '');\n  }\n  return html;\n}\n\n// Os dados já foram extraídos do state.json pelo nó \"Extrai State e Prepara\"\n// (antes da leitura do template, que substitui $json). Referenciamos por nome.\nconst __r = $('Extrai State e Prepara').item.json;\nconst g = __r.g;\nconst imovelRaw = __r.imovelRaw;\nconst logoBase64 = __r.logoBase64;\nconst logoMime = __r.logoMime;\nconst landingId = __r.landingId;\nconst expiresAt = __r.expiresAt;\nconst estado = __r.estado;\nconst dominio = __r.dominio;\n\n// 3. Template\nconst htmlBuffer = await this.helpers.getBinaryDataBuffer(0, 'data');\nlet html = htmlBuffer.toString('utf8');\n\n// 4. Logo — os 3 cenários\nconst hasLogo = !!(imovelRaw.logo && logoBase64);\nconst logoFraca = hasLogo && isLowResImage(logoBase64, logoMime);\nconst showLogoHeader = hasLogo && !logoFraca;\nconst showWordmark = !hasLogo || logoFraca;\n\n// 5. Vídeo\nconst embedUrl = toEmbedUrl(imovelRaw.video_url);\nconst hasVideo = !!embedUrl;\n\n// 6. Meta / preview\nconst corretorWaDigits = String(imovelRaw.corretor?.whatsapp || '').replace(/\\D/g, '');\nconst corretorWaLink = 'https://wa.me/' + corretorWaDigits;\nconst paymentLink = 'https://wa.me/' + corretorWaDigits + '?text=' + encodeURIComponent('Quero publicar a minha landing \"' + imovelRaw.titulo + '\"');\nconst agendamentoEndpoint = 'http://161.35.19.139/webhook/agendar-visita';\nconst slug = slugify(imovelRaw.titulo);\nconst fileNameBase = slug + '-' + landingId;\nconst canonical = 'http://161.35.19.139/' + fileNameBase + '.html';\n\n// 7. Loops\nconst destaques = (g.imovel.destaques || []).map(d => ({ titulo: escapeHtml(d.titulo), descricao: escapeHtml(d.descricao) }));\nconst fichaTecnica = (g.imovel.ficha_tecnica || []).map(f => ({ label: escapeHtml(f.label), valor: escapeHtml(f.valor) }));\nconst fotos = (imovelRaw.fotos || []).slice(0, 15);\nconst legendas = g.galeria.legendas || [];\nconst galeriaFotos = fotos.map((url, i) => ({\n  src: safeUrl(url),\n  alt: escapeAttr(imovelRaw.titulo + ' — foto ' + (i + 1)),\n  legenda: escapeHtml(legendas[i] || '')\n}));\n\nhtml = renderLoop(html, 'imovel.ficha_tecnica', fichaTecnica);\nhtml = renderLoop(html, 'imovel.destaques', destaques);\nhtml = renderLoop(html, 'galeria.fotos', galeriaFotos);\n\n// 8. Condicionais\nhtml = renderIf(html, 'preview_banner', estado === 'preview');\nhtml = renderIf(html, 'logo', showLogoHeader);\nhtml = renderIf(html, 'wordmark', showWordmark);\nhtml = renderIf(html, 'video', hasVideo);\nif (!hasVideo) {\n  html = html.replace(/<div class=\"mb-10 aspect-video reveal\">[\\s\\S]*?<\\/div>\\s*(?=<div class=\"grid)/, '');\n}\n\n// 9. Arquétipo — remove os 2 heróis não escolhidos\nhtml = stripHeroArchetypes(html, g.direction_sheet.arquetipo);\n\n// 10. Tokens simples\nconst map = {\n  'seo.title': escapeHtml(g.seo.title),\n  'seo.description': escapeHtml(g.seo.description),\n  'seo.canonical': canonical,\n  'seo.og_image': safeUrl(fotos[0] || ''),\n  'identity.fonts_url': (() => {\n    const pair = g.identity.fontes;\n    const fam = (name) => encodeURIComponent(name).replace(/%20/g, '+');\n    return `https://fonts.googleapis.com/css2?family=${fam(pair.display)}:wght@400;600;700&family=${fam(pair.body)}:wght@400;500;600&display=swap`;\n  })(),\n  'identity.bg': escapeAttr(g.identity.paleta.bg),\n  'identity.surface': escapeAttr(g.identity.paleta.surface),\n  'identity.ink': escapeAttr(g.identity.paleta.ink),\n  'identity.accent': escapeAttr(g.identity.paleta.accent),\n  'identity.accent_soft': escapeAttr(g.identity.paleta.accent_soft),\n  'identity.font_display': escapeAttr(g.identity.fontes.display),\n  'identity.font_body': escapeAttr(g.identity.fontes.body),\n  'identity.arquetipo': g.direction_sheet.arquetipo,\n  'brand.favicon': safeUrl(imovelRaw.logo) || safeUrl(fotos[0] || ''),\n  'brand.name': escapeHtml(imovelRaw.imobiliaria),\n  'brand.logo': safeUrl(imovelRaw.logo),\n  'brand.privacy_url': '/privacidade',\n  'imovel.titulo': escapeHtml(imovelRaw.titulo),\n  'imovel.morada': escapeHtml(imovelRaw.localizacao),\n  'imovel.quartos': escapeHtml(imovelRaw.quartos),\n  'imovel.area': escapeHtml(imovelRaw.area),\n  'imovel.preco_valor': toNumericPrice(imovelRaw.preco),\n  'imovel.foto_hero': safeUrl(fotos[0] || ''),\n  'imovel.foto_1': safeUrl(fotos[0] || fotos[fotos.length - 1] || ''),\n  'imovel.foto_2': safeUrl(fotos[1] || fotos[0] || ''),\n  'imovel.foto_3': safeUrl(fotos[2] || fotos[0] || ''),\n  'imovel.foto_4': safeUrl(fotos[3] || fotos[0] || ''),\n  'imovel.video_embed_url': embedUrl,\n  'imovel.descricao_lifestyle': escapeHtml(g.imovel.descricao_lifestyle),\n  'hero.eyebrow': escapeHtml(g.hero.eyebrow),\n  'hero.headline': escapeHtml(g.hero.headline),\n  'hero.subheadline': escapeHtml(g.hero.subheadline),\n  'hero.cta_label': escapeHtml(g.hero.cta_label),\n  'galeria.headline': escapeHtml(g.galeria.headline),\n  'localizacao.headline': escapeHtml(g.localizacao.headline),\n  'localizacao.descricao_zona': escapeHtml(g.localizacao.descricao_zona),\n  'localizacao.mapa_embed_url': 'https://www.google.com/maps?q=' + encodeURIComponent(imovelRaw.localizacao || '') + '&output=embed',\n  'agendamento.headline': escapeHtml(g.agendamento.headline),\n  'agendamento.subtext': escapeHtml(g.agendamento.subtext),\n  'agendamento.button_label': escapeHtml(g.agendamento.button_label),\n  'meta.agendamento_endpoint': agendamentoEndpoint,\n  'meta.landing_id': landingId,\n  'corretor.nome': escapeHtml(imovelRaw.corretor?.nome),\n  'corretor.whatsapp_link': corretorWaLink,\n  'corretor.whatsapp_display': escapeHtml(imovelRaw.corretor?.whatsapp),\n  'corretor.email': escapeAttr(imovelRaw.corretor?.email),\n  'preview.expires_at': expiresAt,\n  'preview.payment_link': paymentLink\n};\nfor (const k in map) {\n  html = html.split('{{' + k + '}}').join(map[k] ?? '');\n}\n\n// 11. SWEEP FINAL — falha a execução se sobrar QUALQUER placeholder\nconst leftoverTokens = html.match(/\\{\\{[^}]*\\}\\}/g) || [];\nconst leftoverIfs = html.match(/<!--\\/?IF:[a-z_]+-->/g) || [];\nif (leftoverTokens.length || leftoverIfs.length) {\n  throw new Error('SWEEP FALHOU — placeholders por resolver, execução falhada, nada publicado: ' +\n    JSON.stringify(leftoverTokens.concat(leftoverIfs)));\n}\nconst heroBlocksLeft = (html.match(/<section class=\"hero-block/g) || []).length;\nconst h1Count = (html.match(/<h1[ >]/g) || []).length;\nif (heroBlocksLeft !== 1 || h1Count !== 1) {\n  throw new Error('SWEEP FALHOU — arquétipo não isolado corretamente (hero-blocks=' + heroBlocksLeft + ', h1=' + h1Count + '), execução falhada, nada publicado.');\n}\n\nconst fileName = fileNameBase + '.html';\nconst stateFileName = fileNameBase + '.state.json';\nconst stateJson = {\n  landing_id: landingId,\n  cliente: { imobiliaria: imovelRaw.imobiliaria, corretor: imovelRaw.corretor, nif: imovelRaw.nif },\n  imovel: imovelRaw,\n  gemini_output: g,\n  estado: estado,\n  expires_at: expiresAt,\n  dominio: dominio,\n  url: canonical,\n  criado: new Date().toISOString()\n};\n$input.item.binary.data = await this.helpers.prepareBinaryData(Buffer.from(html, 'utf8'), fileName, 'text/html');\n$input.item.binary.state = await this.helpers.prepareBinaryData(Buffer.from(JSON.stringify(stateJson, null, 2), 'utf8'), stateFileName, 'application/json');\n$input.item.json.fileName = fileName;\n$input.item.json.stateFileName = stateFileName;\n$input.item.json.landingId = landingId;\n$input.item.json.arquetipo = g.direction_sheet.arquetipo;\n$input.item.json.canonical = canonical;\n$input.item.json.stateJson = stateJson;\n\nreturn $input.item;\n"
+      },
+      "id": "code-reativador-1",
+      "name": "Reativador Imovel",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        800,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "write",
+        "fileName": "=/home/node/.n8n-files/builds/{{$json.fileName}}",
+        "dataPropertyName": "data",
+        "options": {}
+      },
+      "id": "write-html-reativar-1",
+      "name": "Sobrescreve HTML",
+      "type": "n8n-nodes-base.readWriteFile",
+      "typeVersion": 1,
+      "position": [
+        1000,
+        220
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "write",
+        "fileName": "=/home/node/.n8n-files/builds/{{$json.stateFileName}}",
+        "dataPropertyName": "state",
+        "options": {}
+      },
+      "id": "write-state-reativar-1",
+      "name": "Sobrescreve State",
+      "type": "n8n-nodes-base.readWriteFile",
+      "typeVersion": 1,
+      "position": [
+        1000,
+        400
+      ]
+    }
+  ],
+  "connections": {
+    "Webhook Reativar": {
+      "main": [
+        [
+          {
+            "node": "Le State para Reativar",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Le State para Reativar": {
+      "main": [
+        [
+          {
+            "node": "Extrai State e Prepara",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extrai State e Prepara": {
+      "main": [
+        [
+          {
+            "node": "Le Template para Reativar",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Le Template para Reativar": {
+      "main": [
+        [
+          {
+            "node": "Reativador Imovel",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Reativador Imovel": {
+      "main": [
+        [
+          {
+            "node": "Sobrescreve HTML",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Sobrescreve State",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  }
+}

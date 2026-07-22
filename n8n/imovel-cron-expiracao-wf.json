@@ -1,0 +1,172 @@
+{
+  "id": "imovel-cron-expiracao-wf",
+  "name": "Prisma - Cron Expiracao Imovel",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "hours",
+              "hoursInterval": 1
+            }
+          ]
+        }
+      },
+      "id": "schedule-1",
+      "name": "A cada hora",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        0,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "fileSelector": "/home/node/.n8n-files/builds/*.state.json",
+        "options": {}
+      },
+      "id": "read-glob-1",
+      "name": "Le Todos os State JSON",
+      "type": "n8n-nodes-base.readWriteFile",
+      "typeVersion": 1,
+      "position": [
+        200,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "\nconst htmlBuffer = await this.helpers.getBinaryDataBuffer(0, 'data');\nconst raw = htmlBuffer.toString('utf8');\n\nlet state;\ntry {\n  state = JSON.parse(raw);\n} catch (e) {\n  return [{ json: { shouldExpire: false, skipReason: 'json invalido' } }];\n}\n\nconst stateFileName = $input.item.binary.data.fileName || '';\nconst isExpired = state.estado === 'preview' && state.expires_at && new Date(state.expires_at).getTime() < Date.now();\n\nif (!isExpired) {\n  return [{ json: { shouldExpire: false, landingId: state.landing_id, stateFileName } }];\n}\n\nstate.estado = 'expirado';\n\nfunction escapeHtml(unsafe) {\n  if (!unsafe) return '';\n  return String(unsafe).replace(/&/g, \"&amp;\").replace(/</g, \"&lt;\").replace(/>/g, \"&gt;\").replace(/\"/g, \"&quot;\").replace(/'/g, \"&#039;\");\n}\nconst corretorNome = escapeHtml(state.cliente?.corretor?.nome || '');\nconst corretorWa = String(state.cliente?.corretor?.whatsapp || '').replace(/\\D/g, '');\nconst titulo = escapeHtml(state.imovel?.titulo || 'Este imóvel');\nconst waLink = 'https://wa.me/' + corretorWa + '?text=' + encodeURIComponent('Olá, a pré-visualização de \"' + (state.imovel?.titulo || '') + '\" expirou. Gostava de a reativar.');\n\nconst expiredHtml = `<!DOCTYPE html>\n<html lang=\"pt\">\n<head>\n<meta charset=\"UTF-8\">\n<meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n<title>Pré-visualização expirada</title>\n<meta name=\"robots\" content=\"noindex\">\n<style>\n  body{font-family:system-ui,sans-serif;background:#0f172a;color:#f8fafc;display:flex;min-height:100vh;align-items:center;justify-content:center;margin:0;padding:1.5rem;text-align:center}\n  .box{max-width:32rem}\n  h1{font-size:1.5rem;margin-bottom:.75rem}\n  p{color:#94a3b8;margin-bottom:1.5rem;line-height:1.6}\n  a{display:inline-flex;align-items:center;gap:.5rem;padding:.9rem 1.5rem;border-radius:.5rem;background:#25D366;color:#062611;font-weight:600;text-decoration:none}\n</style>\n</head>\n<body>\n  <div class=\"box\">\n    <h1>A pré-visualização de \"${titulo}\" expirou</h1>\n    <p>Esta landing estava em modo de pré-visualização e o prazo terminou sem confirmação de publicação. Contacte ${corretorNome || 'o corretor'} para a reativar.</p>\n    <a href=\"${waLink}\">Reativar via WhatsApp</a>\n  </div>\n</body>\n</html>`;\n\nconst htmlFileName = stateFileName.replace('.state.json', '.html');\nconst stateFileNameOut = stateFileName;\n\nconst outHtmlBinary = await this.helpers.prepareBinaryData(Buffer.from(expiredHtml, 'utf8'), htmlFileName.split('/').pop(), 'text/html');\nconst outStateBinary = await this.helpers.prepareBinaryData(Buffer.from(JSON.stringify(state, null, 2), 'utf8'), stateFileNameOut.split('/').pop(), 'application/json');\n\nreturn [{\n  json: { shouldExpire: true, landingId: state.landing_id, htmlPath: '/home/node/.n8n-files/builds/' + htmlFileName.split('/').pop(), statePath: '/home/node/.n8n-files/builds/' + stateFileNameOut.split('/').pop() },\n  binary: { data: outHtmlBinary, state: outStateBinary }\n}];\n"
+      },
+      "id": "code-check-1",
+      "name": "Verifica Expiracao",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        400,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "leftValue": "={{$json.shouldExpire}}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "if-expire-1",
+      "name": "Se Expirou",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        600,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "write",
+        "fileName": "={{$json.htmlPath}}",
+        "dataPropertyName": "data",
+        "options": {}
+      },
+      "id": "write-expired-html-1",
+      "name": "Sobrescreve HTML Expirado",
+      "type": "n8n-nodes-base.readWriteFile",
+      "typeVersion": 1,
+      "position": [
+        800,
+        220
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "write",
+        "fileName": "={{$json.statePath}}",
+        "dataPropertyName": "state",
+        "options": {}
+      },
+      "id": "write-expired-state-1",
+      "name": "Atualiza State para Expirado",
+      "type": "n8n-nodes-base.readWriteFile",
+      "typeVersion": 1,
+      "position": [
+        800,
+        400
+      ]
+    }
+  ],
+  "connections": {
+    "A cada hora": {
+      "main": [
+        [
+          {
+            "node": "Le Todos os State JSON",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Le Todos os State JSON": {
+      "main": [
+        [
+          {
+            "node": "Verifica Expiracao",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Verifica Expiracao": {
+      "main": [
+        [
+          {
+            "node": "Se Expirou",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Se Expirou": {
+      "main": [
+        [
+          {
+            "node": "Sobrescreve HTML Expirado",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Atualiza State para Expirado",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  }
+}

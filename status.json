@@ -1,0 +1,32 @@
+﻿{
+    "commit":  "3f4ce4a",
+    "server":  "161.35.19.139",
+    "checks":  {
+                   "ssh_no_password":  "OK",
+                   "ufw_active":  "OK",
+                   "port_5678_closed":  "OK",
+                   "ssl":  "PENDENTE",
+                   "backup_cron":  "OK",
+                   "backup_local":  "OK",
+                   "backup_offsite":  "OK",
+                   "restore_tested":  "PENDENTE",
+                   "backup_date":  "`2026-07-22`",
+                   "model":  "OK `gemini-3.5-flash`",
+                   "escape_html":  "OK",
+                   "escape_attr":  "OK",
+                   "response_schema":  "OK",
+                   "typo_fixed":  "OK",
+                   "wf_count":  "5 workflows - DUPLICADO?",
+                   "error_workflow":  "PENDENTE",
+                   "webhook_alive":  "OK (200)",
+                   "e2e_file":  "OK",
+                   "e2e_xss":  "OK",
+                   "e2e_image":  "OK",
+                   "e2e_typo":  "OK",
+                   "e2e_llm":  "OK",
+                   "wf_in_git":  "OK"
+               },
+    "fails":  0,
+    "verified_at":  "2026-07-22T07:52:14+01:00",
+    "warns":  4
+}

@@ -1,0 +1,204 @@
+{
+  "id": "imovel-landing-wf",
+  "name": "Prisma - Imovel Landing",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "imovel-landing",
+        "responseMode": "lastNode",
+        "options": {}
+      },
+      "id": "webhook-imovel-1",
+      "name": "Webhook Imovel",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1.1,
+      "position": [
+        0,
+        304
+      ],
+      "webhookId": "b1e2c3d4-imovel-landing-0001"
+    },
+    {
+      "parameters": {
+        "jsCode": "\nconst tallyBody = $json.body || {};\nconst isTally = !!tallyBody.data?.fields;\n\nfunction getField(label) {\n  if (!isTally) return null;\n  return tallyBody.data.fields.find(x => x.label && x.label.toLowerCase().includes(label.toLowerCase()));\n}\nfunction getValue(label, directKey) {\n  const f = getField(label);\n  if (f) {\n    if (f.type === 'FILE_UPLOAD' && Array.isArray(f.value)) return f.value.map(v => v.url);\n    if (Array.isArray(f.value)) return f.value;\n    return f.value || '';\n  }\n  return tallyBody[directKey] !== undefined ? tallyBody[directKey] : '';\n}\n\nconst imobiliaria = getValue('Nome da Imobiliária', 'imobiliaria') || 'Imobiliária Prisma';\nconst logoArr = getValue('Logótipo da Imobiliária', 'logo');\nconst logoUrl = Array.isArray(logoArr) ? (logoArr[0] || '') : (logoArr || '');\nconst titulo = getValue('Título do Imóvel', 'titulo') || 'Imóvel Exclusivo';\nconst preco = getValue('Preço', 'preco') || 'Sob consulta';\nconst tipologia = getValue('Tipologia', 'tipologia') || '';\nconst area = getValue('Área', 'area') || '';\nconst quartos = getValue('Quartos', 'quartos') || '';\nconst wc = getValue('WC', 'wc') || '';\nconst localizacao = getValue('Localização', 'localizacao') || '';\nconst fotosArr = getValue('Fotos do Imóvel', 'fotos');\nconst fotos = Array.isArray(fotosArr) ? fotosArr : (fotosArr ? [fotosArr] : []);\nconst videoUrl = getValue('Link do Vídeo', 'video_url') || '';\nconst destaque1 = getValue('Destaque 1', 'destaque1') || '';\nconst destaque2 = getValue('Destaque 2', 'destaque2') || '';\nconst destaque3 = getValue('Destaque 3', 'destaque3') || '';\nconst extrasArr = getValue('Extras', 'extras');\nconst extras = Array.isArray(extrasArr) ? extrasArr : (extrasArr ? [extrasArr] : []);\nconst ano = getValue('Ano de Construção', 'ano') || '';\nconst corretorNome = getValue('Nome do Corretor', 'corretor_nome') || imobiliaria;\nconst corretorWhatsapp = getValue('WhatsApp do Corretor', 'corretor_whatsapp') || '+351900000000';\nconst corretorEmail = getValue('Email do Corretor', 'corretor_email') || '';\nconst nif = getValue('NIF', 'nif') || '';\n\nconst imovel = {\n  imobiliaria, logo: logoUrl, titulo, preco, tipologia, area, quartos, wc, localizacao,\n  fotos, video_url: videoUrl,\n  destaques_unicos: [destaque1, destaque2, destaque3].filter(Boolean),\n  extras, ano, corretor: { nome: corretorNome, whatsapp: corretorWhatsapp, email: corretorEmail }, nif\n};\n\nconst FONT_POOL = 'Cormorant Garamond + Inter; Playfair Display + Source Sans 3; Fraunces + Work Sans; Libre Caslon + Karla; Marcellus + Mulish';\nconst BLACKLIST = 'imóvel de sonho, localização privilegiada, acabamentos de luxo, oportunidade única, excelente investimento, charme, requinte, sucesso, excelência';\n\nlet logoStatus = 'ausente';\nlet logoInlinePart = null;\nlet logoBase64 = '';\nlet logoMime = '';\nif (logoUrl) {\n  try {\n    const res = await this.helpers.httpRequest({ url: logoUrl, encoding: 'arraybuffer' });\n    logoBase64 = Buffer.from(res).toString('base64');\n    logoMime = logoUrl.toLowerCase().endsWith('.png') ? 'image/png'\n      : logoUrl.toLowerCase().endsWith('.svg') ? 'image/svg+xml'\n      : logoUrl.toLowerCase().endsWith('.webp') ? 'image/webp' : 'image/jpeg';\n    logoInlinePart = { inlineData: { mimeType: logoMime, data: logoBase64 } };\n    logoStatus = 'presente, imagem fornecida';\n  } catch (e) {\n    logoStatus = 'ausente (falha ao descarregar)';\n  }\n}\n\nconst promptText = `Atuas como Diretor Criativo de uma agência especializada em imobiliário de luxo em Portugal.\nVais criar a identidade e todo o conteúdo de uma landing page para UM imóvel específico.\n\nDADOS DO IMÓVEL: ${JSON.stringify(imovel)}\nLOGO: ${logoStatus}\n\nREGRAS:\n1. Preenche TODOS os campos do schema. Nenhum vazio.\n2. Escolhe o arquétipo: \"cinematic\" se há fotos espetaculares e/ou vídeo (hero full-screen);\n   \"editorial\" se o imóvel tem história/carácter (composição assimétrica tipo revista de arquitetura);\n   \"gallery_first\" se há muitos espaços/divisões distintos (a grelha de fotos é o hero).\n3. Paleta: se houver logo, deriva da marca; se não houver, escolhe pelo carácter do imóvel\n   (praia→areias/azuis profundos; urbano→grafite/dourado; rural→terracota/oliva).\n   PROIBIDO: paletas default de startup (roxo/gradiente azul-rosa).\n4. Fontes: escolhe UM par do pool: ${FONT_POOL}.\n5. Copy: português europeu, sóbrio, sensorial. O headline TEM de usar um dos destaques únicos\n   fornecidos em destaques_unicos. PROIBIDO usar estas expressões ou emojis: ${BLACKLIST}.\n6. ficha_tecnica: converte tipologia/área/quartos/wc/extras/preço em pares label-valor.\n7. Justifica as tuas escolhas na direction_sheet (2-3 frases cada). Em detalhe_unico_usado,\n   indica qual dos destaques_unicos usaste no headline.`;\n\nconst parts = [{ text: promptText }];\nif (logoInlinePart) parts.push(logoInlinePart);\n\nconst responseSchema = {\n  type: 'OBJECT',\n  required: ['direction_sheet','identity','hero','imovel','galeria','localizacao','agendamento','seo'],\n  properties: {\n    direction_sheet: { type:'OBJECT', required:['arquetipo','justificacao_arquetipo','justificacao_paleta','detalhe_unico_usado'],\n      properties: {\n        arquetipo: { type:'STRING', enum:['cinematic','editorial','gallery_first'] },\n        justificacao_arquetipo: { type:'STRING' },\n        justificacao_paleta: { type:'STRING' },\n        detalhe_unico_usado: { type:'STRING' }\n      }},\n    identity: { type:'OBJECT', required:['paleta','fontes'],\n      properties: {\n        paleta: { type:'OBJECT', required:['bg','surface','ink','accent','accent_soft'],\n          properties: { bg:{type:'STRING'}, surface:{type:'STRING'}, ink:{type:'STRING'}, accent:{type:'STRING'}, accent_soft:{type:'STRING'} } },\n        fontes: { type:'OBJECT', required:['display','body'],\n          properties: { display:{type:'STRING'}, body:{type:'STRING'} } }\n      }},\n    hero: { type:'OBJECT', required:['eyebrow','headline','subheadline','cta_label'],\n      properties: { eyebrow:{type:'STRING'}, headline:{type:'STRING'}, subheadline:{type:'STRING'}, cta_label:{type:'STRING'} } },\n    imovel: { type:'OBJECT', required:['descricao_lifestyle','destaques','ficha_tecnica'],\n      properties: {\n        descricao_lifestyle: { type:'STRING' },\n        destaques: { type:'ARRAY', minItems:3, maxItems:5, items: { type:'OBJECT', required:['titulo','descricao'], properties: { titulo:{type:'STRING'}, descricao:{type:'STRING'} } } },\n        ficha_tecnica: { type:'ARRAY', items: { type:'OBJECT', required:['label','valor'], properties: { label:{type:'STRING'}, valor:{type:'STRING'} } } }\n      }},\n    galeria: { type:'OBJECT', required:['headline'], properties: { headline:{type:'STRING'}, legendas:{type:'ARRAY', items:{type:'STRING'}} } },\n    localizacao: { type:'OBJECT', required:['headline','descricao_zona'], properties: { headline:{type:'STRING'}, descricao_zona:{type:'STRING'} } },\n    agendamento: { type:'OBJECT', required:['headline','subtext','button_label'], properties: { headline:{type:'STRING'}, subtext:{type:'STRING'}, button_label:{type:'STRING'} } },\n    seo: { type:'OBJECT', required:['title','description'], properties: { title:{type:'STRING'}, description:{type:'STRING'} } }\n  }\n};\n\nconst geminiRequest = {\n  contents: [{ parts }],\n  generationConfig: { temperature: 0.85, maxOutputTokens: 8192, responseMimeType: 'application/json', responseSchema }\n};\n\nreturn [{ json: { geminiRequest, imovel_raw: imovel, logo_base64: logoBase64, logo_mime: logoMime } }];\n"
+      },
+      "id": "code-prepara-payload-1",
+      "name": "Prepara Payload Gemini",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        208,
+        304
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "=Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "=json",
+        "specifyBody": "json",
+        "bodyParameters": {
+          "parameters": [
+            {}
+          ]
+        },
+        "jsonBody": "={{ JSON.stringify($json.geminiRequest) }}",
+        "options": {
+          "timeout": 45000
+        }
+      },
+      "id": "http-gemini-v2-1",
+      "name": "Google Gemini v2",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        416,
+        304
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "e8c8ea4d-4e4c-46e4-aa54-28f92b4741fb",
+          "name": "Gemini API Key"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "fileSelector": "/home/node/.n8n-files/templates/imovel_template.html",
+        "options": {}
+      },
+      "id": "read-template-imovel-1",
+      "name": "Le Template Imovel",
+      "type": "n8n-nodes-base.readWriteFile",
+      "typeVersion": 1,
+      "position": [
+        624,
+        304
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "\nfunction escapeHtml(unsafe) {\n  if (unsafe === undefined || unsafe === null) return '';\n  return String(unsafe).replace(/&/g, \"&amp;\").replace(/</g, \"&lt;\").replace(/>/g, \"&gt;\").replace(/\"/g, \"&quot;\").replace(/'/g, \"&#039;\");\n}\nfunction escapeAttr(unsafe) {\n  if (unsafe === undefined || unsafe === null) return '';\n  return String(unsafe).replace(/\"/g, \"&quot;\").replace(/'/g, \"&#039;\");\n}\nfunction safeUrl(unsafeUrl) {\n  if (!unsafeUrl) return '';\n  const u = String(unsafeUrl).trim();\n  if (u.startsWith('http://') || u.startsWith('https://')) return escapeAttr(u);\n  return '';\n}\nfunction toEmbedUrl(url) {\n  if (!url) return '';\n  const u = String(url).trim();\n  let m = u.match(/(?:youtube\\.com\\/watch\\?v=|youtu\\.be\\/|youtube\\.com\\/embed\\/)([a-zA-Z0-9_-]{6,})/);\n  if (m) return 'https://www.youtube.com/embed/' + m[1];\n  m = u.match(/vimeo\\.com\\/(?:video\\/)?(\\d+)/);\n  if (m) return 'https://player.vimeo.com/video/' + m[1];\n  return '';\n}\nfunction toNumericPrice(str) {\n  if (!str) return '';\n  const digits = String(str).replace(/[^\\d]/g, '');\n  return digits || '';\n}\nfunction slugify(str) {\n  return String(str || 'imovel').toLowerCase()\n    .normalize('NFD').replace(/[̀-ͯ]/g, '')\n    .replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').substring(0, 60) || 'imovel';\n}\nfunction isLowResImage(base64, mime) {\n  try {\n    const buf = Buffer.from(base64, 'base64');\n    if (mime === 'image/png' && buf.length > 24 && buf.readUInt32BE(0) === 0x89504e47) {\n      const width = buf.readUInt32BE(16);\n      const height = buf.readUInt32BE(20);\n      return width < 200 || height < 200;\n    }\n    if (mime === 'image/jpeg') {\n      let i = 2;\n      while (i < buf.length - 9) {\n        if (buf[i] !== 0xFF) { i++; continue; }\n        const marker = buf[i + 1];\n        if (marker >= 0xC0 && marker <= 0xC3) {\n          const height = buf.readUInt16BE(i + 5);\n          const width = buf.readUInt16BE(i + 7);\n          return width < 200 || height < 200;\n        }\n        const segLen = buf.readUInt16BE(i + 2);\n        i += 2 + segLen;\n      }\n    }\n  } catch (e) { /* formato não reconhecido (svg/webp) — não classifica como fraca */ }\n  return false;\n}\nfunction renderLoop(html, key, items) {\n  const escKey = key.replace('.', '\\\\.');\n  const re = new RegExp('\\\\{\\\\{#' + escKey + '\\\\}\\\\}([\\\\s\\\\S]*?)\\\\{\\\\{\\\\/' + escKey + '\\\\}\\\\}');\n  const m = html.match(re);\n  if (!m) return html;\n  const block = m[1];\n  const rendered = (items || []).map(item => {\n    let s = block;\n    for (const k in item) {\n      s = s.split('{{' + k + '}}').join(item[k]);\n    }\n    return s;\n  }).join('');\n  return html.replace(re, rendered);\n}\nfunction renderIf(html, key, condition) {\n  const re = new RegExp('<!--IF:' + key + '-->([\\\\s\\\\S]*?)<!--/IF:' + key + '-->', 'g');\n  return html.replace(re, condition ? '$1' : '');\n}\nfunction stripHeroArchetypes(html, chosen) {\n  const all = ['cinematic', 'editorial', 'gallery_first'];\n  for (const name of all) {\n    if (name === chosen) continue;\n    const re = new RegExp('<section class=\"hero-block[^\"]*\"[^>]*data-archetype-hero=\"' + name + '\"[\\\\s\\\\S]*?<\\\\/section>');\n    html = html.replace(re, '');\n  }\n  return html;\n}\n\n// 1. Parse Gemini response — falha explícita, sem fallback genérico\nlet geminiText = '';\ntry {\n  const cands = $items('Google Gemini v2')[0].json.candidates;\n  const parts = cands[0].content.parts;\n  geminiText = parts[parts.length - 1].text || '';\n} catch (e) {\n  throw new Error('COMPILADOR: resposta do Gemini sem candidates/parts válidos. Execução falhada, nada publicado.');\n}\n\nlet g;\ntry {\n  const cleaned = geminiText.replace(/```json/g, '').replace(/```/g, '').trim();\n  g = JSON.parse(cleaned);\n} catch (e) {\n  throw new Error('COMPILADOR: JSON do Gemini inválido, execução falhada. Raw (300 chars): ' + geminiText.substring(0, 300));\n}\nconst REQUIRED_TOP = ['direction_sheet','identity','hero','imovel','galeria','localizacao','agendamento','seo'];\nfor (const k of REQUIRED_TOP) {\n  if (!g[k]) throw new Error('COMPILADOR: campo obrigatório \"' + k + '\" ausente na resposta do Gemini. Execução falhada.');\n}\n\n// 2. Dados brutos do Tally\nconst src = $items('Prepara Payload Gemini')[0].json;\nconst imovelRaw = src.imovel_raw || {};\nconst logoBase64 = src.logo_base64 || '';\nconst logoMime = src.logo_mime || '';\n\n// Meta (novos nesta geração)\nconst landingId = Date.now().toString(36) + Math.random().toString(36).substring(2, 8) + Math.random().toString(36).substring(2, 8);\nconst expiresAt = new Date(Date.now() + 24 * 3600 * 1000).toISOString();\nconst estado = 'preview';\nconst dominio = null;\n\n// 3. Template\nconst htmlBuffer = await this.helpers.getBinaryDataBuffer(0, 'data');\nlet html = htmlBuffer.toString('utf8');\n\n// 4. Logo — os 3 cenários\nconst hasLogo = !!(imovelRaw.logo && logoBase64);\nconst logoFraca = hasLogo && isLowResImage(logoBase64, logoMime);\nconst showLogoHeader = hasLogo && !logoFraca;\nconst showWordmark = !hasLogo || logoFraca;\n\n// 5. Vídeo\nconst embedUrl = toEmbedUrl(imovelRaw.video_url);\nconst hasVideo = !!embedUrl;\n\n// 6. Meta / preview\nconst corretorWaDigits = String(imovelRaw.corretor?.whatsapp || '').replace(/\\D/g, '');\nconst corretorWaLink = 'https://wa.me/' + corretorWaDigits;\nconst paymentLink = 'https://wa.me/' + corretorWaDigits + '?text=' + encodeURIComponent('Quero publicar a minha landing \"' + imovelRaw.titulo + '\"');\nconst agendamentoEndpoint = 'http://161.35.19.139/webhook/agendar-visita';\nconst slug = slugify(imovelRaw.titulo);\nconst fileNameBase = slug + '-' + landingId;\nconst canonical = 'http://161.35.19.139/' + fileNameBase + '.html';\n\n// 7. Loops\nconst destaques = (g.imovel.destaques || []).map(d => ({ titulo: escapeHtml(d.titulo), descricao: escapeHtml(d.descricao) }));\nconst fichaTecnica = (g.imovel.ficha_tecnica || []).map(f => ({ label: escapeHtml(f.label), valor: escapeHtml(f.valor) }));\nconst fotos = (imovelRaw.fotos || []).slice(0, 15);\nconst legendas = g.galeria.legendas || [];\nconst galeriaFotos = fotos.map((url, i) => ({\n  src: safeUrl(url),\n  alt: escapeAttr(imovelRaw.titulo + ' — foto ' + (i + 1)),\n  legenda: escapeHtml(legendas[i] || '')\n}));\n\nhtml = renderLoop(html, 'imovel.ficha_tecnica', fichaTecnica);\nhtml = renderLoop(html, 'imovel.destaques', destaques);\nhtml = renderLoop(html, 'galeria.fotos', galeriaFotos);\n\n// 8. Condicionais\nhtml = renderIf(html, 'preview_banner', estado === 'preview');\nhtml = renderIf(html, 'logo', showLogoHeader);\nhtml = renderIf(html, 'wordmark', showWordmark);\nhtml = renderIf(html, 'video', hasVideo);\nif (!hasVideo) {\n  html = html.replace(/<div class=\"mb-10 aspect-video reveal\">[\\s\\S]*?<\\/div>\\s*(?=<div class=\"grid)/, '');\n}\n\n// 9. Arquétipo — remove os 2 heróis não escolhidos\nhtml = stripHeroArchetypes(html, g.direction_sheet.arquetipo);\n\n// 10. Tokens simples\nconst map = {\n  'seo.title': escapeHtml(g.seo.title),\n  'seo.description': escapeHtml(g.seo.description),\n  'seo.canonical': canonical,\n  'seo.og_image': safeUrl(fotos[0] || ''),\n  'identity.fonts_url': (() => {\n    const pair = g.identity.fontes;\n    const fam = (name) => encodeURIComponent(name).replace(/%20/g, '+');\n    return `https://fonts.googleapis.com/css2?family=${fam(pair.display)}:wght@400;600;700&family=${fam(pair.body)}:wght@400;500;600&display=swap`;\n  })(),\n  'identity.bg': escapeAttr(g.identity.paleta.bg),\n  'identity.surface': escapeAttr(g.identity.paleta.surface),\n  'identity.ink': escapeAttr(g.identity.paleta.ink),\n  'identity.accent': escapeAttr(g.identity.paleta.accent),\n  'identity.accent_soft': escapeAttr(g.identity.paleta.accent_soft),\n  'identity.font_display': escapeAttr(g.identity.fontes.display),\n  'identity.font_body': escapeAttr(g.identity.fontes.body),\n  'identity.arquetipo': g.direction_sheet.arquetipo,\n  'brand.favicon': safeUrl(imovelRaw.logo) || safeUrl(fotos[0] || ''),\n  'brand.name': escapeHtml(imovelRaw.imobiliaria),\n  'brand.logo': safeUrl(imovelRaw.logo),\n  'brand.privacy_url': '/privacidade',\n  'imovel.titulo': escapeHtml(imovelRaw.titulo),\n  'imovel.morada': escapeHtml(imovelRaw.localizacao),\n  'imovel.quartos': escapeHtml(imovelRaw.quartos),\n  'imovel.area': escapeHtml(imovelRaw.area),\n  'imovel.preco_valor': toNumericPrice(imovelRaw.preco),\n  'imovel.foto_hero': safeUrl(fotos[0] || ''),\n  'imovel.foto_1': safeUrl(fotos[0] || fotos[fotos.length - 1] || ''),\n  'imovel.foto_2': safeUrl(fotos[1] || fotos[0] || ''),\n  'imovel.foto_3': safeUrl(fotos[2] || fotos[0] || ''),\n  'imovel.foto_4': safeUrl(fotos[3] || fotos[0] || ''),\n  'imovel.video_embed_url': embedUrl,\n  'imovel.descricao_lifestyle': escapeHtml(g.imovel.descricao_lifestyle),\n  'hero.eyebrow': escapeHtml(g.hero.eyebrow),\n  'hero.headline': escapeHtml(g.hero.headline),\n  'hero.subheadline': escapeHtml(g.hero.subheadline),\n  'hero.cta_label': escapeHtml(g.hero.cta_label),\n  'galeria.headline': escapeHtml(g.galeria.headline),\n  'localizacao.headline': escapeHtml(g.localizacao.headline),\n  'localizacao.descricao_zona': escapeHtml(g.localizacao.descricao_zona),\n  'localizacao.mapa_embed_url': 'https://www.google.com/maps?q=' + encodeURIComponent(imovelRaw.localizacao || '') + '&output=embed',\n  'agendamento.headline': escapeHtml(g.agendamento.headline),\n  'agendamento.subtext': escapeHtml(g.agendamento.subtext),\n  'agendamento.button_label': escapeHtml(g.agendamento.button_label),\n  'meta.agendamento_endpoint': agendamentoEndpoint,\n  'meta.landing_id': landingId,\n  'corretor.nome': escapeHtml(imovelRaw.corretor?.nome),\n  'corretor.whatsapp_link': corretorWaLink,\n  'corretor.whatsapp_display': escapeHtml(imovelRaw.corretor?.whatsapp),\n  'corretor.email': escapeAttr(imovelRaw.corretor?.email),\n  'preview.expires_at': expiresAt,\n  'preview.payment_link': paymentLink\n};\nfor (const k in map) {\n  html = html.split('{{' + k + '}}').join(map[k] ?? '');\n}\n\n// 11. SWEEP FINAL — falha a execução se sobrar QUALQUER placeholder\nconst leftoverTokens = html.match(/\\{\\{[^}]*\\}\\}/g) || [];\nconst leftoverIfs = html.match(/<!--\\/?IF:[a-z_]+-->/g) || [];\nif (leftoverTokens.length || leftoverIfs.length) {\n  throw new Error('SWEEP FALHOU — placeholders por resolver, execução falhada, nada publicado: ' +\n    JSON.stringify(leftoverTokens.concat(leftoverIfs)));\n}\nconst heroBlocksLeft = (html.match(/<section class=\"hero-block/g) || []).length;\nconst h1Count = (html.match(/<h1[ >]/g) || []).length;\nif (heroBlocksLeft !== 1 || h1Count !== 1) {\n  throw new Error('SWEEP FALHOU — arquétipo não isolado corretamente (hero-blocks=' + heroBlocksLeft + ', h1=' + h1Count + '), execução falhada, nada publicado.');\n}\n\nconst fileName = fileNameBase + '.html';\nconst stateFileName = fileNameBase + '.state.json';\nconst stateJson = {\n  landing_id: landingId,\n  cliente: { imobiliaria: imovelRaw.imobiliaria, corretor: imovelRaw.corretor, nif: imovelRaw.nif },\n  imovel: imovelRaw,\n  gemini_output: g,\n  estado: estado,\n  expires_at: expiresAt,\n  dominio: dominio,\n  url: canonical,\n  criado: new Date().toISOString()\n};\n$input.item.binary.data = await this.helpers.prepareBinaryData(Buffer.from(html, 'utf8'), fileName, 'text/html');\n$input.item.binary.state = await this.helpers.prepareBinaryData(Buffer.from(JSON.stringify(stateJson, null, 2), 'utf8'), stateFileName, 'application/json');\n$input.item.json.fileName = fileName;\n$input.item.json.stateFileName = stateFileName;\n$input.item.json.landingId = landingId;\n$input.item.json.arquetipo = g.direction_sheet.arquetipo;\n$input.item.json.canonical = canonical;\n$input.item.json.stateJson = stateJson;\n\nreturn $input.item;\n"
+      },
+      "id": "code-compilador-imovel-1",
+      "name": "Compilador Imovel v2",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        832,
+        304
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "write",
+        "fileName": "=/home/node/.n8n-files/builds/{{$json.fileName}}",
+        "dataPropertyName": "data",
+        "options": {}
+      },
+      "id": "write-html-imovel-1",
+      "name": "Grava HTML Imovel",
+      "type": "n8n-nodes-base.readWriteFile",
+      "typeVersion": 1,
+      "position": [
+        1040,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "write",
+        "fileName": "=/home/node/.n8n-files/builds/{{$json.stateFileName}}",
+        "dataPropertyName": "state",
+        "options": {}
+      },
+      "id": "write-state-imovel-1",
+      "name": "Grava State JSON",
+      "type": "n8n-nodes-base.readWriteFile",
+      "typeVersion": 1,
+      "position": [
+        1040,
+        420
+      ]
+    }
+  ],
+  "connections": {
+    "Webhook Imovel": {
+      "main": [
+        [
+          {
+            "node": "Prepara Payload Gemini",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepara Payload Gemini": {
+      "main": [
+        [
+          {
+            "node": "Google Gemini v2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini v2": {
+      "main": [
+        [
+          {
+            "node": "Le Template Imovel",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Le Template Imovel": {
+      "main": [
+        [
+          {
+            "node": "Compilador Imovel v2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Compilador Imovel v2": {
+      "main": [
+        [
+          {
+            "node": "Grava HTML Imovel",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Grava State JSON",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  }
+}
