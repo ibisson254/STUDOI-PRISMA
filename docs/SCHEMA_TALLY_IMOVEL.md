@@ -7,7 +7,11 @@
 ---
 
 > [!IMPORTANT]
-> Os **labels têm de bater exatamente** com os usados abaixo — o Compilador (`Prepara Payload Gemini`, nó `n8n/imovel-landing-wf.json`) procura os campos por correspondência parcial do label (case-insensitive), não pela ordem. Um label diferente = um campo vazio em produção.
+> Os **labels têm de bater exatamente** com os usados abaixo — o nó `Prepara Payload Diretor` (`n8n/imovel-landing-wf.json`) procura os campos por correspondência parcial do label (case-insensitive), não pela ordem. Um label diferente = um campo vazio em produção.
+>
+> **Este formulário ainda não existe como formulário real no Tally.so** (só existe como esta spec) — este documento é o contrato canónico contra o qual o Tally tem de ser construído. Ver auditoria G1 em `STATE.md` (2026-07-24).
+>
+> Desde 2026-07-24, todos os campos marcados **Obrigatório: ✅ Sim** abaixo são validados no início do pipeline (`Prepara Payload Diretor`, antes de qualquer chamada ao Gemini) — se algum chegar vazio ou ausente, a execução falha explicitamente e nada é publicado. Campos **❌ Não** (Logótipo, Link do Vídeo, Extras, Ano de Construção) continuam a poder faltar em silêncio.
 
 ---
 
@@ -153,7 +157,7 @@
 
 ---
 
-## Mapeamento Tally → Payload interno (nó "Prepara Payload Gemini")
+## Mapeamento Tally → Payload interno (nó "Prepara Payload Diretor")
 
 | Campo Tally | Chave interna | Usado por |
 |---|---|---|
@@ -178,7 +182,7 @@
 
 ## Nota de compatibilidade de teste
 
-O nó `Prepara Payload Gemini` aceita dois formatos de entrada, para permitir testes sem o Tally:
+O nó `Prepara Payload Diretor` aceita dois formatos de entrada, para permitir testes sem o Tally:
 - **Formato Tally real:** `{ data: { fields: [{ label, type, value }, ...] } }`
 - **Formato direto (teste):** chaves diretas como `{ imobiliaria, titulo, preco, ... }`
 

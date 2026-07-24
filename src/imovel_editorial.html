@@ -1,0 +1,490 @@
+<!DOCTYPE html>
+<html lang="pt" class="scroll-smooth">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{{seo.title}}</title>
+  <meta name="description" content="{{seo.description}}">
+  <link rel="canonical" href="{{seo.canonical}}">
+
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="{{seo.title}}">
+  <meta property="og:description" content="{{seo.description}}">
+  <meta property="og:image" content="{{seo.og_image}}">
+  <meta name="twitter:card" content="summary_large_image">
+
+  <!-- SLOT:META_PIXEL -->
+  <!-- SLOT:GA4 -->
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="{{identity.fonts_url}}">
+
+  <link rel="icon" href="{{brand.favicon}}">
+
+  <style>
+    :root{
+      --bg:{{identity.bg}};--surface:{{identity.surface}};--ink:{{identity.ink}};
+      --accent:{{identity.accent}};--accent-soft:{{identity.accent_soft}};
+      --font-display:"{{identity.font_display}}",serif;
+      --font-body:"{{identity.font_body}}",sans-serif;
+      /* escala de espaçamento em múltiplos de 8px */
+      --sp-1:.5rem;--sp-2:1rem;--sp-3:1.5rem;--sp-4:2rem;--sp-5:2.5rem;
+      --sp-6:3rem;--sp-8:4rem;--sp-10:5rem;--sp-12:6rem;--sp-14:7rem;
+      --gap:var(--sp-3);
+      --section-pad:var(--sp-10);
+      --frame-pad:0px;
+      --frame-shadow:none;
+      --banner-h:0px;
+    }
+    body[data-spacing="arejado"]{--section-pad:var(--sp-14);--gap:var(--sp-4)}
+    body[data-spacing="denso"]{--section-pad:var(--sp-6);--gap:var(--sp-2)}
+    body[data-image="framed"]{--frame-pad:var(--sp-2);--frame-shadow:0 1px 3px rgba(0,0,0,.08)}
+    body[data-image="full-bleed"]{--frame-pad:0px;--frame-shadow:none}
+    body[data-ornament="nenhum"] .ornament{display:none}
+
+    *{box-sizing:border-box;min-width:0}
+    body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--font-body);-webkit-font-smoothing:antialiased;line-height:1.6;padding-top:var(--banner-h)}
+    .font-display{font-family:var(--font-display)}
+    img{max-width:100%;display:block}
+    a{color:inherit}
+    *:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+    h1,h2,h3,p,.valor,.label,.brandname{overflow-wrap:break-word;word-break:break-word}
+
+    .wrap{max-width:82rem;margin-inline:auto;padding-inline:var(--sp-3)}
+    @media(min-width:768px){.wrap{padding-inline:var(--sp-5)}}
+
+    .g12{display:grid;grid-template-columns:repeat(12,1fr);gap:var(--gap)}
+    .c-4{grid-column:span 4}.c-5{grid-column:span 5}.c-6{grid-column:span 6}
+    .c-7{grid-column:span 7}.c-8{grid-column:span 8}.c-12{grid-column:span 12}
+    /* Abaixo de 900px abandona-se a grid de 12 colunas por completo (em vez de
+       forçar span 12 nas faixas 1fr, que em alguns motores de layout resolve
+       as faixas a 0px e causa overflow horizontal) — bloco simples empilhado. */
+    @media(max-width:900px){
+      .g12{display:block}
+      .g12>*{width:100%;max-width:100%}
+    }
+
+    .eyebrow{font-family:var(--font-body);font-weight:600;font-size:.78rem;letter-spacing:.14em;text-transform:uppercase;color:var(--accent);margin:0 0 var(--sp-2)}
+    .secnum{display:inline-flex;align-items:baseline;gap:.6rem;font-family:var(--font-body);font-size:.78rem;letter-spacing:.14em;text-transform:uppercase;color:var(--accent);margin-bottom:var(--sp-3)}
+    .secnum b{font-family:var(--font-display);font-size:1.1rem;letter-spacing:0;color:var(--ink)}
+
+    .ornament{width:2.5rem;height:1px;background:var(--accent);margin:0 auto;border:0}
+    body[data-ornament="marca"] .ornament{width:auto;height:auto;background:none;font-family:var(--font-display);font-size:1.4rem;color:var(--accent);letter-spacing:.3em}
+    body[data-ornament="marca"] .ornament::after{content:"·"}
+
+    /* Header — o offset top é definido por JS (mede a altura real do banner) */
+    header{position:sticky;top:var(--banner-h);z-index:50;background:color-mix(in srgb, var(--bg) 88%, transparent);backdrop-filter:blur(8px);border-bottom:1px solid rgba(0,0,0,.06)}
+    header .row{display:flex;align-items:center;justify-content:space-between;gap:var(--sp-2);padding-block:var(--sp-2)}
+    .brandmark{display:flex;align-items:center;gap:var(--sp-2);min-width:0}
+    .monogram{width:2.5rem;height:2.5rem;border-radius:50%;border:1px solid var(--ink);display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-size:.95rem;letter-spacing:.05em;flex:none}
+    .brandname{font-family:var(--font-display);font-size:1.05rem;font-weight:600;letter-spacing:.01em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+    .btn{display:inline-flex;align-items:center;justify-content:center;gap:.5rem;padding:.85rem var(--sp-3);min-height:44px;border-radius:2px;background:var(--accent);color:var(--bg);font-weight:600;font-size:.85rem;letter-spacing:.03em;text-decoration:none;transition:transform .2s ease;flex:none;white-space:nowrap}
+    .btn:hover{transform:translateY(-2px)}
+    .btn-outline{background:transparent;border:1px solid var(--ink);color:var(--ink)}
+    .btn-block{width:100%}
+    @media(max-width:400px){.btn{padding:.85rem var(--sp-2);font-size:.78rem}}
+
+    /* Preview banner — fixo, com altura medida por JS para nunca colidir com o header */
+    #preview-banner{position:fixed;top:0;inset-inline:0;z-index:1000;background:rgba(0,0,0,.9);color:#fff;backdrop-filter:blur(4px)}
+    #preview-banner .row{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:var(--sp-2);padding-block:var(--sp-2);font-size:.85rem;max-width:82rem;margin-inline:auto;padding-inline:var(--sp-3)}
+    #preview-banner .btn{padding:.55rem var(--sp-2);min-height:36px}
+
+    /* Hero — assimetrica, imagem 7/12, texto 5/12 */
+    .hero{padding-block:calc(var(--section-pad) * .6) var(--section-pad)}
+    .hero-media{position:relative;overflow:hidden;aspect-ratio:4/5;background:var(--surface);padding:var(--frame-pad);box-shadow:var(--frame-shadow)}
+    .hero-media img{width:100%;height:100%;object-fit:cover;will-change:transform}
+    .hero-text{display:flex;flex-direction:column;justify-content:center;padding-top:1rem}
+    .hero-text h1{font-family:var(--font-display);font-weight:700;font-size:clamp(1.9rem,4vw,3.1rem);line-height:1.12;margin:0 0 1.25rem}
+    .hero-text p{color:color-mix(in srgb, var(--ink) 70%, transparent);font-size:1.05rem;margin:0 0 2rem;max-width:32rem}
+
+    /* Secções numeradas */
+    section.numbered{padding-block:var(--section-pad);border-top:1px solid rgba(0,0,0,.06)}
+
+    /* 01 · Ficha — preço com destaque próprio, lista sempre stacked (label em cima, valor em baixo, ambos à esquerda) */
+    .price-hero{font-family:var(--font-display);font-weight:700;font-size:clamp(1.8rem,4vw,2.6rem);margin:0 0 var(--sp-6);color:var(--ink)}
+    /* Sem max-width fixo: a lista usa a largura util do .wrap em vez de ficar
+       encolhida a 44rem num container que pode ir ate 82rem (causava ~45%
+       de vazio a direita em desktop largo — D1). O numero de colunas cresce
+       com o container para que "arejado" continue a significar espaco ENTRE
+       elementos, nao meio ecra vazio. */
+    .ficha-list{display:grid;grid-template-columns:1fr;gap:var(--sp-4);list-style:none;padding:0;margin:0}
+    .ficha-list li{display:flex;flex-direction:column;align-items:flex-start;text-align:left;gap:var(--sp-1);border-bottom:1px solid rgba(0,0,0,.08);padding-bottom:var(--sp-2)}
+    .ficha-list .label{text-transform:uppercase;font-size:.72rem;letter-spacing:.1em;color:color-mix(in srgb, var(--ink) 55%, transparent);text-align:left}
+    .ficha-list .valor{font-family:var(--font-display);font-weight:600;font-size:1.1rem;text-align:left;max-width:100%}
+    .ficha-list li.wide{grid-column:1/-1}
+    .chips{display:flex;flex-wrap:wrap;gap:var(--sp-1);margin-top:.15rem}
+    .chip{font-family:var(--font-body);font-size:.78rem;font-weight:600;padding:.3rem .75rem;border:1px solid color-mix(in srgb, var(--ink) 25%, transparent);border-radius:999px;white-space:nowrap}
+    @media(min-width:768px){
+      .ficha-list{grid-template-columns:1fr 1fr;gap:var(--sp-4) var(--sp-6)}
+    }
+    @media(min-width:1200px){
+      .ficha-list{grid-template-columns:repeat(3,1fr);gap:var(--sp-5) var(--sp-8)}
+    }
+
+    /* A Casa (02) — pull-quote + destaques alternados */
+    .pullquote{max-width:42rem;margin:0 auto var(--sp-8);text-align:center}
+    .pullquote p{font-family:var(--font-display);font-style:italic;font-weight:500;font-size:clamp(1.35rem,2.6vw,2rem);line-height:1.35;margin:0}
+    .destaque-row{display:grid;grid-template-columns:1fr 1fr;gap:var(--gap);align-items:center;margin-bottom:var(--gap)}
+    .destaque-row.reverse{direction:rtl}
+    .destaque-row.reverse>*{direction:ltr}
+    .destaque-media{aspect-ratio:4/3;width:100%;overflow:hidden;background:var(--surface);padding:var(--frame-pad);box-shadow:var(--frame-shadow)}
+    .destaque-media img{width:100%;height:100%;object-fit:cover}
+    .destaque-copy{padding:var(--sp-4)}
+    .destaque-copy h3{font-family:var(--font-display);font-size:1.4rem;margin:0 0 var(--sp-2)}
+    .destaque-copy p{margin:0;color:color-mix(in srgb, var(--ink) 75%, transparent)}
+    @media(max-width:900px){.destaque-row,.destaque-row.reverse{grid-template-columns:1fr;direction:ltr}.destaque-copy{padding:var(--sp-3) 0}}
+
+    /* Espaços (03) — galeria alternada L/R com legendas.
+       Posicionamento explicito por grid-column (não usa `order`) para garantir
+       que a foto ocupa sempre a coluna 7fr, logo a MESMA largura/altura nos dois lados. */
+    .galeria-item{display:grid;grid-template-columns:7fr 5fr;gap:var(--gap);align-items:end;margin-bottom:calc(var(--gap) * 2)}
+    .galeria-item .galeria-media{grid-column:1}
+    .galeria-item .galeria-caption{grid-column:2}
+    .galeria-item.right{grid-template-columns:5fr 7fr}
+    .galeria-item.right .galeria-media{grid-column:2}
+    .galeria-item.right .galeria-caption{grid-column:1;text-align:right}
+    .galeria-media{aspect-ratio:3/2;width:100%;overflow:hidden;cursor:pointer;background:var(--surface);padding:var(--frame-pad);box-shadow:var(--frame-shadow);border:0}
+    .galeria-media img{width:100%;height:100%;object-fit:cover;transition:transform .6s ease}
+    .galeria-media:hover img{transform:scale(1.035)}
+    .galeria-caption{font-size:.85rem;color:color-mix(in srgb, var(--ink) 60%, transparent);padding-bottom:var(--sp-1)}
+    .galeria-caption .idx{font-family:var(--font-display);font-size:1.1rem;color:var(--ink);display:block;margin-bottom:.25rem}
+    @media(max-width:900px){
+      .galeria-item,.galeria-item.right{grid-template-columns:1fr}
+      .galeria-item .galeria-media,.galeria-item.right .galeria-media{grid-column:1}
+      .galeria-item .galeria-caption,.galeria-item.right .galeria-caption{grid-column:1;text-align:left}
+    }
+
+    .video-wrap{aspect-ratio:16/9;margin-bottom:calc(var(--gap) * 2)}
+    .video-wrap iframe{width:100%;height:100%;border:0}
+
+    /* Lugar (04) */
+    .lugar-grid{display:grid;grid-template-columns:5fr 7fr;gap:var(--gap);align-items:center}
+    .lugar-grid iframe{width:100%;aspect-ratio:4/3;border:0}
+    @media(max-width:900px){.lugar-grid{grid-template-columns:1fr}}
+
+    /* Visita (05) */
+    .visita{background:var(--accent);color:var(--bg)}
+    .visita h2{color:var(--bg)}
+    .visita .secnum,.visita .secnum b{color:var(--bg)}
+    .form-card{background:var(--bg);color:var(--ink);border-radius:2px;padding:var(--sp-4);max-width:38rem;margin:0 auto}
+    .field{margin-bottom:var(--sp-2)}
+    .field label{display:block;font-size:.85rem;font-weight:600;margin-bottom:.35rem}
+    .field input,.field textarea{width:100%;min-height:44px;padding:.6rem var(--sp-2);border:1px solid rgba(0,0,0,.15);border-radius:2px;background:var(--surface);color:var(--ink);font-family:var(--font-body);font-size:1rem}
+    .field textarea{min-height:auto}
+    #form-status{margin-top:var(--sp-2);font-size:.9rem;text-align:center}
+    @media(max-width:400px){.form-card{padding:var(--sp-3)}}
+
+    /* footer com espaço extra no fundo para o FAB nunca tapar o texto final */
+    footer{border-top:1px solid rgba(0,0,0,.08);padding-top:var(--sp-6);padding-bottom:var(--sp-14)}
+    footer .g12{align-items:start}
+    footer h3{font-family:var(--font-display);font-size:1rem;margin:0 0 var(--sp-1)}
+    footer p{color:color-mix(in srgb, var(--ink) 60%, transparent);margin:0}
+    footer .legal{border-top:1px solid rgba(0,0,0,.08);margin-top:var(--sp-4);padding-top:var(--sp-3);text-align:center;font-size:.85rem;color:color-mix(in srgb, var(--ink) 50%, transparent)}
+
+    .fab{position:fixed;z-index:50;display:flex;align-items:center;justify-content:center;width:56px;height:56px;border-radius:50%;background:#25D366;color:#062611;box-shadow:0 4px 14px rgba(0,0,0,.2);bottom:calc(var(--sp-3) + env(safe-area-inset-bottom,0px));right:calc(var(--sp-3) + env(safe-area-inset-right,0px));transition:transform .2s ease}
+    .fab:hover{transform:scale(1.08)}
+
+    .reveal{opacity:0;transform:translateY(20px);transition:opacity .7s ease,transform .7s ease}
+    .reveal.visible{opacity:1;transform:none}
+    @media(prefers-reduced-motion:reduce){.reveal{opacity:1!important;transform:none!important;transition:none!important}.hero-media img{transform:none!important}}
+
+    #lightbox{display:none;position:fixed;inset:0;z-index:1001;background:rgba(0,0,0,.96);align-items:center;justify-content:center;padding:1rem}
+    #lightbox.open{display:flex}
+    #lightbox img{max-width:100%;max-height:80vh;object-fit:contain;border-radius:2px}
+    #lightbox-close{position:absolute;top:1rem;right:1rem;width:44px;height:44px;display:flex;align-items:center;justify-content:center;color:#fff;background:none;border:0;cursor:pointer}
+    #lightbox-caption{position:absolute;bottom:1.5rem;inset-inline:0;text-align:center;color:rgba(255,255,255,.8);font-size:.9rem}
+
+    .skip-link{position:absolute;left:-999px;top:1rem;z-index:999;background:var(--accent);color:var(--bg);padding:.6rem 1.2rem;border-radius:2px;font-weight:600}
+    .skip-link:focus{left:1rem}
+  </style>
+
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "RealEstateListing",
+    "name": "{{imovel.titulo}}",
+    "description": "{{seo.description}}",
+    "image": "{{seo.og_image}}",
+    "url": "{{seo.canonical}}",
+    "address": "{{imovel.morada}}",
+    "numberOfRooms": "{{imovel.quartos}}",
+    "floorSize": { "@type": "QuantitativeValue", "value": "{{imovel.area}}", "unitCode": "MTK" },
+    "offers": { "@type": "Offer", "price": "{{imovel.preco_valor}}", "priceCurrency": "EUR" }
+  }
+  </script>
+</head>
+
+<body data-spacing="{{identity.espacamento}}" data-image="{{identity.tratamento_imagem}}" data-ornament="{{identity.ornamento}}">
+
+  <a href="#main" class="skip-link">Saltar para o conteúdo</a>
+
+  <!--IF:preview_banner-->
+  <div id="preview-banner" data-expires="{{preview.expires_at}}">
+    <div class="row">
+      <span>Pré-visualização — expira em <strong id="preview-countdown">--:--:--</strong>. Publique já.</span>
+      <a href="{{preview.payment_link}}" class="btn">Publicar o meu site</a>
+    </div>
+  </div>
+  <script>
+    /* Mede a altura real do banner e empurra o header + o corpo da página
+       para baixo por essa medida exata — evita a colisão banner/header em
+       qualquer largura de ecrã ou quebra de linha do texto do banner. */
+    (function(){
+      var b=document.getElementById('preview-banner');
+      if(!b) return;
+      function sync(){document.documentElement.style.setProperty('--banner-h', b.offsetHeight+'px')}
+      sync();
+      window.addEventListener('resize', sync);
+    })();
+  </script>
+  <!--/IF:preview_banner-->
+
+  <header>
+    <div class="wrap row">
+      <!--IF:logo-->
+      <img src="{{brand.logo}}" alt="{{brand.name}}" style="height:2.25rem;width:auto">
+      <!--/IF:logo-->
+      <!--IF:monogram-->
+      <div class="brandmark">
+        <div class="monogram">{{brand.initials}}</div>
+        <span class="brandname">{{brand.name}}</span>
+      </div>
+      <!--/IF:monogram-->
+      <a href="#visita" class="btn">Agendar Visita</a>
+    </div>
+  </header>
+
+  <main id="main">
+
+    <!-- HERO — assimetrico, imagem 7/12 + texto 5/12 -->
+    <section class="hero">
+      <div class="wrap g12">
+        <div class="c-7">
+          <div class="hero-media" id="hero-media">
+            <img src="{{imovel.foto_hero}}" {{imovel.foto_hero_srcset}} alt="{{imovel.titulo}}" loading="eager" id="hero-img">
+          </div>
+        </div>
+        <div class="c-5 hero-text">
+          <p class="eyebrow">{{hero.eyebrow}}</p>
+          <h1>{{hero.headline}}</h1>
+          <p>{{hero.subheadline}}</p>
+          <a href="#visita" class="btn">{{hero.cta_label}}</a>
+        </div>
+      </div>
+    </section>
+
+    <!-- 01 · FICHA -->
+    <section class="numbered">
+      <div class="wrap">
+        <p class="secnum"><b>01</b> Ficha</p>
+        <p class="price-hero">{{imovel.preco_display}}</p>
+        <ul class="ficha-list">
+          {{imovel.ficha_tecnica_html}}
+        </ul>
+      </div>
+    </section>
+
+    <hr class="ornament">
+
+    <!-- 02 · A CASA -->
+    <section class="numbered">
+      <div class="wrap">
+        <p class="secnum"><b>02</b> A Casa</p>
+        <div class="pullquote reveal">
+          <p>“{{imovel.descricao_lifestyle}}”</p>
+        </div>
+        {{#imovel.destaques}}
+        <div class="destaque-row{{reverseClass}} reveal">
+          <div class="destaque-media"><img src="{{fotoSrc}}" {{fotoSrcset}} alt="{{titulo}}" loading="lazy"></div>
+          <div class="destaque-copy">
+            <h3>{{titulo}}</h3>
+            <p>{{descricao}}</p>
+          </div>
+        </div>
+        {{/imovel.destaques}}
+      </div>
+    </section>
+
+    <hr class="ornament">
+
+    <!-- 03 · ESPAÇOS -->
+    <section class="numbered" id="galeria">
+      <div class="wrap">
+        <p class="secnum"><b>03</b> Espaços</p>
+        <!--IF:video-->
+        <div class="video-wrap reveal">
+          <iframe src="{{imovel.video_embed_url}}" title="Tour do imóvel" loading="lazy"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+        </div>
+        <!--/IF:video-->
+        {{#galeria.fotos}}
+        <div class="galeria-item{{sideClass}} reveal">
+          <button type="button" class="lightbox-trigger galeria-media" data-src="{{src}}" data-legenda="{{legenda}}" aria-label="{{ariaLabel}}">
+            <img src="{{src}}" {{srcset}} alt="{{alt}}" loading="lazy">
+          </button>
+          {{captionHtml}}
+        </div>
+        {{/galeria.fotos}}
+      </div>
+    </section>
+
+    <hr class="ornament">
+
+    <!-- 04 · LUGAR -->
+    <section class="numbered">
+      <div class="wrap">
+        <p class="secnum"><b>04</b> Lugar</p>
+        <div class="lugar-grid">
+          <div class="reveal">
+            <h2 class="font-display" style="font-size:1.6rem;margin:0 0 1rem">{{localizacao.headline}}</h2>
+            <p style="color:color-mix(in srgb, var(--ink) 70%, transparent)">{{localizacao.descricao_zona}}</p>
+          </div>
+          <iframe class="reveal" src="{{localizacao.mapa_embed_url}}" title="Mapa da localização" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- 05 · VISITA -->
+  <section class="numbered visita" id="visita">
+    <div class="wrap" style="text-align:center">
+      <p class="secnum"><b>05</b> Visita</p>
+      <h2 class="font-display" style="font-size:2rem;margin:0 0 .75rem">{{agendamento.headline}}</h2>
+      <p style="margin:0 0 2.5rem;opacity:.85">{{agendamento.subtext}}</p>
+      <form id="form-agendamento" class="form-card" data-endpoint="{{meta.agendamento_endpoint}}" data-landing-id="{{meta.landing_id}}">
+        <div class="field"><label for="f-nome">Nome</label><input id="f-nome" name="nome" type="text" required minlength="2"></div>
+        <div class="field"><label for="f-telefone">Telefone</label><input id="f-telefone" name="telefone" type="tel" required></div>
+        <div class="field"><label for="f-email">Email</label><input id="f-email" name="email" type="email" required></div>
+        <div class="field"><label for="f-data">Data preferida</label><input id="f-data" name="data" type="date"></div>
+        <div class="field"><label for="f-mensagem">Mensagem (opcional)</label><textarea id="f-mensagem" name="mensagem" rows="3"></textarea></div>
+        <button type="submit" class="btn btn-block">{{agendamento.button_label}}</button>
+        <p id="form-status" role="status" aria-live="polite"></p>
+      </form>
+    </div>
+  </section>
+
+  <footer>
+    <div class="wrap g12">
+      <div class="c-4">
+        <span class="brandname font-display">{{brand.name}}</span>
+        <p style="margin-top:.5rem">{{imovel.morada}}</p>
+      </div>
+      <div class="c-4">
+        <h3>Contacto</h3>
+        <p>{{corretor.nome}}<br>
+          <a href="{{corretor.whatsapp_link}}">{{corretor.whatsapp_display}}</a>
+        </p>
+      </div>
+      <div class="c-4">
+        <h3>Legal</h3>
+        <p><a href="{{brand.privacy_url}}">Política de Privacidade</a></p>
+      </div>
+    </div>
+    <div class="legal">© <span id="year"></span> {{brand.name}}. Todos os direitos reservados. · <a href="{{brand.attribution_url}}">{{brand.attribution_label}}</a></div>
+  </footer>
+
+  <a href="{{corretor.whatsapp_link}}" class="fab" aria-label="Enviar mensagem no WhatsApp">
+    <svg width="26" height="26" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2a10 10 0 0 0-8.6 15l-1.3 4.7 4.8-1.3A10 10 0 1 0 12 2Z"/></svg>
+  </a>
+
+  <div id="lightbox" role="dialog" aria-modal="true" aria-label="Foto ampliada">
+    <button type="button" id="lightbox-close" aria-label="Fechar">
+      <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>
+    </button>
+    <img id="lightbox-img" alt="">
+    <p id="lightbox-caption"></p>
+  </div>
+
+  <script>
+    var io=new IntersectionObserver(function(ee){
+      ee.forEach(function(e){if(e.isIntersecting){e.target.classList.add('visible');io.unobserve(e.target)}})
+    },{threshold:.15,rootMargin:'0px 0px -40px 0px'});
+    document.querySelectorAll('.reveal').forEach(function(el){io.observe(el)});
+
+    document.getElementById('year').textContent=new Date().getFullYear();
+
+    var banner=document.getElementById('preview-banner');
+    if(banner){
+      var expires=new Date(banner.getAttribute('data-expires')).getTime();
+      var countdownEl=document.getElementById('preview-countdown');
+      if(expires && !isNaN(expires)){
+        var tick=function(){
+          var diff=expires-Date.now();
+          if(diff<=0){countdownEl.textContent='expirado';clearInterval(timer);return}
+          var h=Math.floor(diff/3600000), m=Math.floor((diff%3600000)/60000), s=Math.floor((diff%60000)/1000);
+          countdownEl.textContent=String(h).padStart(2,'0')+':'+String(m).padStart(2,'0')+':'+String(s).padStart(2,'0');
+        };
+        tick();
+        var timer=setInterval(tick,1000);
+      }
+    }
+
+    var lb=document.getElementById('lightbox'), lbImg=document.getElementById('lightbox-img'), lbCap=document.getElementById('lightbox-caption');
+    document.querySelectorAll('.lightbox-trigger').forEach(function(btn){
+      btn.addEventListener('click',function(){
+        lbImg.src=btn.getAttribute('data-src');
+        lbImg.alt=btn.getAttribute('data-legenda')||'';
+        lbCap.textContent=btn.getAttribute('data-legenda')||'';
+        lb.classList.add('open');
+      });
+    });
+    function closeLightbox(){lb.classList.remove('open');lbImg.src=''}
+    document.getElementById('lightbox-close').addEventListener('click',closeLightbox);
+    lb.addEventListener('click',function(e){if(e.target===lb)closeLightbox()});
+    document.addEventListener('keydown',function(e){if(e.key==='Escape')closeLightbox()});
+
+    /* Parallax subtil no hero — desativado se prefers-reduced-motion */
+    var heroImg=document.getElementById('hero-img'), heroMedia=document.getElementById('hero-media');
+    var reduceMotion=window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if(heroImg && !reduceMotion){
+      var ticking=false;
+      window.addEventListener('scroll',function(){
+        if(!ticking){
+          window.requestAnimationFrame(function(){
+            var rect=heroMedia.getBoundingClientRect();
+            var offset=Math.max(-40,Math.min(40, rect.top * -0.06));
+            heroImg.style.transform='translateY('+offset+'px) scale(1.08)';
+            ticking=false;
+          });
+          ticking=true;
+        }
+      },{passive:true});
+    }
+
+    var form=document.getElementById('form-agendamento');
+    if(form){
+      form.addEventListener('submit',function(e){
+        e.preventDefault();
+        var status=document.getElementById('form-status');
+        var btn=form.querySelector('button[type="submit"]');
+        var endpoint=form.getAttribute('data-endpoint');
+        var payload={
+          landing_id: form.getAttribute('data-landing-id'),
+          nome: form.nome.value, telefone: form.telefone.value, email: form.email.value,
+          data: form.data.value, mensagem: form.mensagem.value
+        };
+        btn.disabled=true;
+        status.textContent='A enviar...';
+        status.style.color='';
+        fetch(endpoint,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)})
+          .then(function(r){if(!r.ok)throw new Error('fail');return r.json().catch(function(){return {}})})
+          .then(function(){
+            status.textContent='Pedido enviado! O corretor entrará em contacto em breve.';
+            status.style.color='#2e7d32';
+            form.reset();
+            if(typeof fbq==='function'){fbq('track','Lead')}
+            if(typeof gtag==='function'){gtag('event','generate_lead')}
+          })
+          .catch(function(){
+            status.textContent='Não foi possível enviar. Tente novamente ou contacte por WhatsApp.';
+            status.style.color='#c62828';
+          })
+          .finally(function(){btn.disabled=false});
+      });
+    }
+  </script>
+
+</body>
+</html>
