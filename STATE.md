@@ -1,4 +1,4 @@
-﻿# STATE.md � PRISMA STUDIO
+# STATE.md � PRISMA STUDIO
 
 > **Este ficheiro tem dois blocos com donos diferentes.**
 > **`[AUTO]`** � escrito pelo `verify.sh` contra o servidor real. **NENHUM agente ou humano edita isto � m�o.**
@@ -12,7 +12,7 @@
 ## [AUTO] Verdade de terreno
 
 > Gerado por `verify.ps1` â€” **nao editar a mao**.
-> **Verificado em:** 2026-07-22T07:52:14+01:00 | **Servidor:** `161.35.19.139` | **Commit:** `3f4ce4a`
+> **Verificado em:** 2026-07-26T01:34:03+01:00 | **Servidor:** `161.35.19.139` | **Commit:** `f7cb9f0`
 
 Sem falhas criticas. 4 pendencia(s) conhecida(s).
 
@@ -26,13 +26,13 @@ Sem falhas criticas. 4 pendencia(s) conhecida(s).
 | Backup cifrado existe no servidor | OK |
 | Backup replicado FORA do servidor | OK |
 | Restauracao ja foi testada | PENDENTE |
-| Data do ultimo backup | `2026-07-22` |
+| Data do ultimo backup | `2026-07-25` |
 | Modelo Gemini configurado | OK `gemini-3.5-flash` |
 | escapeHtml presente no compilador | OK |
 | escapeAttr presente (safeUrl depende dela) | OK |
 | responseSchema (structured output) ativo | OK |
 | Typo BEM-VDO corrigido | OK |
-| Workflows registados (sem duplicados) | 5 workflows - DUPLICADO? |
+| Workflows registados (sem duplicados) | 6 workflows - DUPLICADO? |
 | Error Workflow configurado (Sprint 3) | PENDENTE |
 | Webhook responde (rota registada) | OK (200) |
 | HTML gerado pelo pipeline | OK |
@@ -74,39 +74,6 @@ Backup completo (BD + config + workflows + builds) cifrado GPG ? push autom�ti
 - **Dois workflows com o mesmo nome** (`66d5ac7f8c71179f` e `tally-onboarding-wf`). Apagar o �rf�o.
 - Password de root ainda por trocar (baixa urg�ncia � password auth desativado).
 
----
-
-## ? [MANUAL] PERGUNTA EM ABERTO
-
-> **O "Projeto Ra�zes" alguma vez foi gerado a partir de uma submiss�o REAL do Tally, ou s� por execu��o manual dentro do n8n?**
-
-A auditoria e o relat�rio do Sprint 0 dizem ambos que a rota do webhook nunca esteve registada. Se for esse o caso, **a PoC "zero-click" pode nunca ter corrido de ponta a ponta** � e isso muda o que consideramos validado.
-
----
-
-## [MANUAL] Onde par�mos
-
-**�ltima sess�o:** 2026-07-22 07:47 � por: agente (Claude Code)
-**O que aconteceu:** Fase 6 confirmada como PENDENTE (n�o fechada) e registada formalmente na sec��o "Motor v2" acima. Executada a Fase 7 (SPEC-MOTOR-V2-IMOBILIARIO.md �9): disparado o webhook real `imovel-landing` 3 vezes com dados fict�cios de 3 im�veis deliberadamente diferentes (praia/luxo, urbano/premium, rural/car�ter), sem logo. As 3 landings foram publicadas de facto no servidor, verificadas via sweep de placeholders, contagem de hero-block/h1, presen�a de lightbox/v�deo/formul�rio/ficha t�cnica/banner, e auditadas com Lighthouse mobile real (Chrome headless local contra o servidor). Resultado completo na sec��o "Fase 7" acima, incluindo uma **falha do sistema anti-gen�rico** (2 dos 3 im�veis sa�ram com o mesmo arqu�tipo+fontes) e **performance mobile abaixo do alvo ?90 nos 3** (74/70/73), com causas j� conhecidas (HTTP puro, Tailwind CDN dev-only, imagens n�o otimizadas, droplet de 1GB).
-**BLOCKER FASE 6 (inalterado):** A API do Brevo retornou 201 (aceite na fila) e registou a execu��o com MessageId oficial (ex: <202607202251.77276665287@smtp-relay.mailin.fr>), MAS o dashboard rejeitou o envio posterior com: \Sending rejected because the sender leads@prismastudio.pt is not valid.\. Isto ocorre porque o dom�nio prismastudio.pt n�o est� configurado e o sender n�o est� verificado na conta Brevo. O workflow j� foi adaptado para ler das vari�veis de ambiente n8n (\{{ $env.BREVO_SENDER_EMAIL || 'leads@prismastudio.pt' }}\) para trocar o remetente sem reimportar o c�digo. A Fase 6 FICA PENDENTE de verifica��o de sender e chegada do e-mail � caixa de entrada do operador. **N�o bloqueou a Fase 7** (que n�o depende de e-mail).
-
-### Pend�ncias fora do Sprint 0
-- **HTTPS** � bloqueado: Let's Encrypt n�o emite para IPs. Precisa de dom�nio.
-- **Classificador de risco** � Sprint 1
-- **HMAC no webhook, Error Workflow, retry** � Sprint 3
-- **Supabase site_state** � Sprint 3. Sem isto, altera��es de cliente s�o tecnicamente imposs�veis.
-
-## ?? [MANUAL] PR�XIMO PASSO (um s�)
-
-> **Decis�o do operador sobre as 3 landings da Fase 7 (ver evid�ncias na sec��o "Fase 7" acima) antes de qualquer avan�o.**
->
-> Duas falhas concretas para o operador julgar: (1) 2 dos 3 im�veis sa�ram com o mesmo arqu�tipo+fontes (falha do anti-gen�rico); (2) Lighthouse mobile 70�74 de performance, abaixo do alvo ?90 nos 3, por causas j� conhecidas (HTTP puro, Tailwind CDN dev-only, imagens sem otimiza��o). Se aprovado apesar destas falhas, o pr�ximo passo t�cnico natural � resolver o CSS compilado (remover Tailwind CDN) e otimiza��o de imagens antes de qualquer link a cliente real � que j� est� bloqueado por HTTPS/dom�nio (ver bloco (a) acima). Sprint 1 (dom�nios) continua como pend�ncia paralela, n�o dependente desta decis�o.
-
-Ficheiro de refer�ncia: `sprint-1-dominios.md`
-
----
-
-## [MANUAL] Motor v2 � Imobili�rio de Luxo (SPEC-MOTOR-V2-IMOBILIARIO.md)
 
 **Sess�o:** 2026-07-18/19 � Fases 1-5 executadas e aprovadas pelo operador (Fase 5 aprovada explicitamente em 2026-07-19).
 

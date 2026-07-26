@@ -116,7 +116,7 @@
          ============================================ -->
 
     <section class="hero-block relative min-h-screen flex items-end" data-archetype-hero="cinematic">
-      <img src="{{imovel.foto_hero}}" alt="{{imovel.titulo}}" class="absolute inset-0 w-full h-full object-cover" loading="eager">
+      <img src="{{imovel.foto_hero}}" {{imovel.foto_hero_srcset}} alt="{{imovel.titulo}}" class="absolute inset-0 w-full h-full object-cover" loading="eager">
       <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-black/10" aria-hidden="true"></div>
       <div class="relative z-10 mx-auto max-w-6xl px-4 pb-20 pt-40 w-full text-white">
         <p class="text-[var(--accent)] font-semibold text-sm uppercase tracking-widest mb-3">{{hero.eyebrow}}</p>
@@ -148,7 +148,7 @@
           </div>
         </div>
         <div class="lg:col-span-2 order-1 lg:order-2">
-          <img src="{{imovel.foto_hero}}" alt="{{imovel.titulo}}" class="w-full h-full min-h-[50vh] object-cover" loading="eager">
+          <img src="{{imovel.foto_hero}}" {{imovel.foto_hero_srcset}} alt="{{imovel.titulo}}" class="w-full h-full min-h-[50vh] object-cover" loading="eager">
         </div>
       </div>
     </section>
@@ -166,10 +166,10 @@
         </a>
       </div>
       <div class="mx-auto max-w-6xl px-4 pb-16 grid grid-cols-4 grid-rows-2 gap-2 h-[60vh]">
-        <img src="{{imovel.foto_1}}" alt="{{imovel.titulo}} — vista 1" class="col-span-2 row-span-2 w-full h-full object-cover rounded" loading="eager">
-        <img src="{{imovel.foto_2}}" alt="{{imovel.titulo}} — vista 2" class="col-span-2 row-span-1 w-full h-full object-cover rounded" loading="lazy">
-        <img src="{{imovel.foto_3}}" alt="{{imovel.titulo}} — vista 3" class="col-span-1 row-span-1 w-full h-full object-cover rounded" loading="lazy">
-        <img src="{{imovel.foto_4}}" alt="{{imovel.titulo}} — vista 4" class="col-span-1 row-span-1 w-full h-full object-cover rounded" loading="lazy">
+        <img src="{{imovel.foto_1}}" {{imovel.foto_1_srcset}} alt="{{imovel.titulo}} — vista 1" class="col-span-2 row-span-2 w-full h-full object-cover rounded" loading="eager">
+        <img src="{{imovel.foto_2}}" {{imovel.foto_2_srcset}} alt="{{imovel.titulo}} — vista 2" class="col-span-2 row-span-1 w-full h-full object-cover rounded" loading="lazy">
+        <img src="{{imovel.foto_3}}" {{imovel.foto_3_srcset}} alt="{{imovel.titulo}} — vista 3" class="col-span-1 row-span-1 w-full h-full object-cover rounded" loading="lazy">
+        <img src="{{imovel.foto_4}}" {{imovel.foto_4_srcset}} alt="{{imovel.titulo}} — vista 4" class="col-span-1 row-span-1 w-full h-full object-cover rounded" loading="lazy">
       </div>
     </section>
 
@@ -233,7 +233,7 @@
         <div class="grid grid-cols-2 md:grid-cols-3 gap-3">
           {{#galeria.fotos}}
           <button type="button" class="lightbox-trigger reveal" data-src="{{src}}" data-legenda="{{legenda}}" aria-label="Ampliar foto: {{legenda}}">
-            <img src="{{src}}" alt="{{alt}}" class="w-full aspect-[4/3] object-cover rounded" loading="lazy">
+            <img src="{{src}}" {{srcset}} width="800" height="600" alt="{{alt}}" class="w-full aspect-[4/3] object-cover rounded" loading="lazy">
           </button>
           {{/galeria.fotos}}
         </div>
@@ -329,7 +329,7 @@
         </div>
       </div>
       <div class="border-t border-[var(--ink)]/10 mt-8 pt-6 text-center text-sm text-[var(--ink)]/50">
-        <p>© <span id="year"></span> {{brand.name}}. Todos os direitos reservados. · <a href="https://prismastudio.pt" class="hover:text-[var(--accent)]">Criado com Prisma</a></p>
+        <p>© <span id="year"></span> {{brand.name}}. Todos os direitos reservados. · <a href="{{brand.attribution_url}}" class="hover:text-[var(--accent)]">{{brand.attribution_label}}</a></p>
       </div>
     </div>
   </footer>
@@ -352,7 +352,7 @@
     <button type="button" id="lightbox-close" aria-label="Fechar" class="absolute top-4 right-4 text-white w-11 h-11 flex items-center justify-center">
       <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>
     </button>
-    <img id="lightbox-img" src="" alt="" class="max-w-full max-h-[80vh] object-contain rounded">
+    <img id="lightbox-img" alt="" class="max-w-full max-h-[80vh] object-contain rounded">
     <p id="lightbox-caption" class="absolute bottom-6 text-white/80 text-sm text-center w-full px-4"></p>
   </div>
 
