@@ -1,5 +1,5 @@
 ﻿{
-    "commit":  "f7cb9f0",
+    "commit":  "05f368b",
     "server":  "161.35.19.139",
     "checks":  {
                    "ssh_no_password":  "OK",
@@ -10,23 +10,18 @@
                    "backup_local":  "OK",
                    "backup_offsite":  "OK",
                    "restore_tested":  "PENDENTE",
-                   "backup_date":  "`2026-07-25`",
+                   "backup_date":  "`2026-07-29`",
                    "model":  "OK `gemini-3.5-flash`",
                    "escape_html":  "OK",
                    "escape_attr":  "OK",
                    "response_schema":  "OK",
                    "typo_fixed":  "OK",
-                   "wf_count":  "6 workflows - DUPLICADO?",
+                   "wf_count":  "9 workflows - DUPLICADO?",
                    "error_workflow":  "PENDENTE",
-                   "webhook_alive":  "OK (200)",
-                   "e2e_file":  "OK",
-                   "e2e_xss":  "OK",
-                   "e2e_image":  "OK",
-                   "e2e_typo":  "OK",
-                   "e2e_llm":  "OK",
+                   "e2e":  "SALTADO (-SkipE2E)",
                    "wf_in_git":  "OK"
                },
     "fails":  0,
-    "verified_at":  "2026-07-26T01:34:03+01:00",
-    "warns":  4
+    "verified_at":  "2026-07-29T09:41:40+01:00",
+    "warns":  5
 }

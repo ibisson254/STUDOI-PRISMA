@@ -12,9 +12,9 @@
 ## [AUTO] Verdade de terreno
 
 > Gerado por `verify.ps1` â€” **nao editar a mao**.
-> **Verificado em:** 2026-07-26T17:32:45+01:00 | **Servidor:** `161.35.19.139` | **Commit:** `e063259`
+> **Verificado em:** 2026-07-29T09:41:40+01:00 | **Servidor:** `161.35.19.139` | **Commit:** `05f368b`
 
-Sem falhas criticas. 4 pendencia(s) conhecida(s).
+Sem falhas criticas. 5 pendencia(s) conhecida(s).
 
 | Item | Estado |
 |---|---|
@@ -26,20 +26,15 @@ Sem falhas criticas. 4 pendencia(s) conhecida(s).
 | Backup cifrado existe no servidor | OK |
 | Backup replicado FORA do servidor | OK |
 | Restauracao ja foi testada | PENDENTE |
-| Data do ultimo backup | `2026-07-26` |
+| Data do ultimo backup | `2026-07-29` |
 | Modelo Gemini configurado | OK `gemini-3.5-flash` |
 | escapeHtml presente no compilador | OK |
 | escapeAttr presente (safeUrl depende dela) | OK |
 | responseSchema (structured output) ativo | OK |
 | Typo BEM-VDO corrigido | OK |
-| Workflows registados (sem duplicados) | 6 workflows - DUPLICADO? |
+| Workflows registados (sem duplicados) | 9 workflows - DUPLICADO? |
 | Error Workflow configurado (Sprint 3) | PENDENTE |
-| Webhook responde (rota registada) | OK (200) |
-| HTML gerado pelo pipeline | OK |
-| XSS neutralizado na saida REAL | OK |
-| safeUrl processou a imagem (escapeAttr ok) | OK |
-| Typo corrigido na saida REAL | OK |
-| Copy do Gemini (nao fallback estatico) | OK |
+| Teste end-to-end | SALTADO (-SkipE2E) |
 | Workflow n8n versionado no Git | OK |
 
 <!-- AUTO:END -->
@@ -160,6 +155,16 @@ Risco confirmado no codigo (antes da correcao desta sessao): 5 campos obrigatori
 **Correcao aplicada em `Prepara Payload Diretor`:** removidos os 5 fallbacks mascarantes; adicionada validacao fail-loud logo apos a leitura do payload, antes de qualquer chamada ao Gemini (poupa custo e falha o mais cedo possivel). Campos obrigatorios verificados: imobiliaria, titulo, preco, tipologia, area, quartos, wc, localizacao, destaque1/2/3, corretor.nome/whatsapp/email, nif, e fotos (minimo 4). Qualquer um vazio ou ausente -> `throw new Error(...)` com a lista completa dos campos em falta; nada e publicado. Campos opcionais (logo, video_url, extras, ano) continuam a poder faltar em silencio, por decisao explicita.
 
 Testado localmente (5 cenarios: completo, falta destaque2, so 2 fotos, falta whatsapp do corretor, payload vazio -- todos com o resultado esperado) e depois E2E contra o webhook real em producao: payload com `destaque2` vazio -> `HTTP 500`, nenhum ficheiro novo em `/var/www/prisma-builds/`; payload completo -> `HTTP 200`, landing publicada normalmente com os 3 destaques corretamente atribuidos (`destaques_backstop_indices: []`).
+
+### Sessao 2026-07-29 -- Fase 6 FECHADA (OAuth2 Gmail & Notificacao de Agendamento E2E)
+
+**Fase 6 concluida e verificada com sucesso.**
+- Credencial Google OAuth2 ("Gmail account") autorizada via tunel SSH (`N8N_EDITOR_BASE_URL=http://localhost:5678` temporario, subsequentemente revertido).
+- Teste E2E disparado contra `/webhook/agendar-visita` (`teste-gemini-mrtlvyoch9q9yolbtuh4`).
+- **Evidencias obtidas:**
+  1. Resposta literal do Webhook: `{"success":true,"lead_registado":true,"email_enviado":true,"gmail_id":"19fad1a9280da4e6","gmail_thread_id":"19fad1a9280da4e6","destinatario":"joao.teste@example.com","timestamp":"2026-07-29T09:00:28.111Z"}`
+  2. No `Enviar Email Gmail` na execucao n8n (ID 395): `"id": "19fad1a9280da4e6"`, `"threadId": "19fad1a9280da4e6"`, `labelIds: ["SENT"]`.
+  3. Lead registado com sucesso no `teste-gemini-mrtlvyoch9q9yolbtuh4.state.json`.
 
 ---
 

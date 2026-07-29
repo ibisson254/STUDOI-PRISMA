@@ -1,0 +1,57 @@
+[
+  {
+    "id": "imovel-error-notify-wf",
+    "name": "Prisma - Notifica Falha Imovel",
+    "nodes": [
+      {
+        "parameters": {},
+        "id": "error-trigger-1",
+        "name": "Error Trigger",
+        "type": "n8n-nodes-base.errorTrigger",
+        "typeVersion": 1,
+        "position": [0, 300]
+      },
+      {
+        "parameters": {
+          "jsCode": "// B4 -- mensagem de falha para o operador via WhatsApp (CallMeBot).\n// O Error Trigger corre quando qualquer workflow com este como \"error workflow\"\n// (ver settings.errorWorkflow em imovel-landing-wf.json) falha a execucao --\n// inclui tanto a validacao G1 (campos em falta) como o bloqueio do Porteiro (S2)\n// e falhas tecnicas (Gemini, download de fotos, etc). Nao inventa detalhe: usa\n// a mensagem de erro real, que ja e descritiva (ver os throw new Error(...) nos\n// nos de origem).\nconst evt = $json;\nconst errorMessage = evt.execution?.error?.message\n  || evt.execution?.lastNodeExecuted?.error?.message\n  || evt.error?.message\n  || 'Erro desconhecido -- ver execucao no n8n.';\nconst workflowName = evt.workflow?.name || 'workflow desconhecido';\nconst executionUrl = evt.execution?.url || '';\n\nlet texto = 'Prisma: falha no pipeline \"' + workflowName + '\"\\n' + errorMessage;\nif (executionUrl) texto += '\\n' + executionUrl;\n\nreturn [{ json: { texto } }];\n"
+        },
+        "id": "code-prepara-falha-1",
+        "name": "Prepara Mensagem Falha",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [220, 300]
+      },
+      {
+        "parameters": {
+          "method": "GET",
+          "url": "https://api.callmebot.com/whatsapp.php",
+          "authentication": "genericCredentialType",
+          "genericAuthType": "httpQueryAuth",
+          "sendQuery": true,
+          "queryParameters": {
+            "parameters": [
+              { "name": "phone", "value": "+351931068933" },
+              { "name": "text", "value": "={{$json.texto}}" }
+            ]
+          },
+          "options": {}
+        },
+        "id": "http-whatsapp-falha-1",
+        "name": "Notifica WhatsApp Falha",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.2,
+        "position": [440, 300],
+        "continueOnFail": true,
+        "onError": "continueRegularOutput",
+        "credentials": {
+          "httpQueryAuth": { "id": "qO5K4F4EWVkE8lMd", "name": "CallMeBot API Key" }
+        }
+      }
+    ],
+    "connections": {
+      "Error Trigger": { "main": [[{ "node": "Prepara Mensagem Falha", "type": "main", "index": 0 }]] },
+      "Prepara Mensagem Falha": { "main": [[{ "node": "Notifica WhatsApp Falha", "type": "main", "index": 0 }]] }
+    },
+    "settings": { "executionOrder": "v1" }
+  }
+]

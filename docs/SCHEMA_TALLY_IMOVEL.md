@@ -7,11 +7,60 @@
 ---
 
 > [!IMPORTANT]
-> Os **labels têm de bater exatamente** com os usados abaixo — o nó `Prepara Payload Diretor` (`n8n/imovel-landing-wf.json`) procura os campos por correspondência parcial do label (case-insensitive), não pela ordem. Um label diferente = um campo vazio em produção.
+> Os **labels têm de bater exatamente** com os usados abaixo — o nó `Prepara Payload Diretor` (`n8n/imovel-landing-wf.json`) procura os campos por correspondência parcial do label (case-insensitive, tolerante a acentos/espaços — ver B1 em STATE.md), não pela ordem. Um label muito diferente = um campo vazio em produção.
 >
-> **Este formulário ainda não existe como formulário real no Tally.so** (só existe como esta spec) — este documento é o contrato canónico contra o qual o Tally tem de ser construído. Ver auditoria G1 em `STATE.md` (2026-07-24).
+> **Estado (2026-07-27):** o formulário real já existe em `https://tally.so/r/pbXeKP` ("Prisma Studio - Lançamento de Ativo Imobiliário") mas está **incompleto** — tem apenas 3 campos + 6 uploads separados. Este documento é o contrato canónico contra o qual o Tally real tem de ser completado. Ver §"Checklist copy-paste" abaixo para a lista pronta a colar no Tally, e a auditoria G1 em `STATE.md` (2026-07-24).
 >
 > Desde 2026-07-24, todos os campos marcados **Obrigatório: ✅ Sim** abaixo são validados no início do pipeline (`Prepara Payload Diretor`, antes de qualquer chamada ao Gemini) — se algum chegar vazio ou ausente, a execução falha explicitamente e nada é publicado. Campos **❌ Não** (Logótipo, Link do Vídeo, Extras, Ano de Construção) continuam a poder faltar em silêncio.
+
+---
+
+## Checklist copy-paste (por ecrã) — usar para completar o Tally real
+
+> Cola isto diretamente no Tally. Labels **exatos** (à esquerda), tipo Tally certo, e se é obrigatório.
+> Recomendação: usar 4 ecrãs (page breaks) na ordem abaixo — reduz a taxa de abandono num formulário com 22 campos.
+
+**Ecrã 1 — Identificação (imobiliária, corretor, faturação)**
+| # | Label exato | Tipo Tally | Obrigatório |
+|---|---|---|---|
+| 1 | Nome da Imobiliária | Short Answer | ✅ Sim |
+| 2 | Logótipo da Imobiliária | File Upload | ❌ Não |
+| 3 | NIF | Short Answer | ✅ Sim |
+| 4 | Número AMI | Short Answer | ✅ Sim |
+| 5 | Nome do Corretor | Short Answer | ✅ Sim |
+| 6 | WhatsApp do Corretor | Phone Number | ✅ Sim |
+| 7 | Email do Corretor | Email | ✅ Sim |
+
+**Ecrã 2 — O imóvel (dados objetivos)**
+| # | Label exato | Tipo Tally | Obrigatório |
+|---|---|---|---|
+| 8 | Título do Imóvel | Short Answer | ✅ Sim |
+| 9 | Preço | Short Answer | ✅ Sim |
+| 10 | Tipologia | Dropdown (T0…T6+, Moradia, Penthouse, Quinta, Terreno) | ✅ Sim |
+| 11 | Área | Number | ✅ Sim |
+| 12 | Quartos | Number | ✅ Sim |
+| 13 | WC | Number | ✅ Sim |
+| 14 | Localização | Short Answer | ✅ Sim |
+| 15 | Ano de Construção | Short Answer | ❌ Não |
+| 16 | Classe Energética | Dropdown (A+, A, B, B-, C, D, E, F) | ✅ Sim |
+
+**Ecrã 3 — Diferenciação (o que o Gemini escreve a partir disto)**
+| # | Label exato | Tipo Tally | Obrigatório |
+|---|---|---|---|
+| 17 | Destaque 1 | Short Answer | ✅ Sim |
+| 18 | Destaque 2 | Short Answer | ✅ Sim |
+| 19 | Destaque 3 | Short Answer | ✅ Sim |
+| 20 | Extras | Multi-select (piscina, garagem, elevador, vista mar, jardim, domótica, painel solar) | ❌ Não |
+| 21 | Link do Vídeo | Short Answer | ❌ Não |
+
+**Ecrã 4 — Fotos**
+| # | Label exato | Tipo Tally | Obrigatório |
+|---|---|---|---|
+| 22 | Fotos do Imóvel | File Upload **múltiplo** (mín. 4, máx. 15) | ✅ Sim |
+
+> ⚠️ **Substituir os 6 uploads separados atuais por ESTE único campo multi-upload.** O código (`Prepara Payload Diretor`) já sabe ler os dois formatos (um campo com array, ou N campos "Foto 1".."Foto 6" — ver B2 em STATE.md), mas um único campo "Fotos do Imóvel" é a UX correta no Tally e é o que a spec original sempre pediu (ver #10 abaixo).
+
+Legenda obrigatório/AMI/Classe Energética: **Número AMI** é a licença de mediação imobiliária (obrigatória por lei em anúncios de imóveis em Portugal); **Classe Energética** é a letra do certificado energético (também obrigatória em publicidade imobiliária).
 
 ---
 
@@ -144,8 +193,26 @@
 |---|---|
 | **Tipo Tally** | Short Answer |
 | **Label** | NIF |
-| **Descrição auxiliar** | Necessário para faturação e, mais tarde, para o registo de domínio. |
+| **Descrição auxiliar** | Necessário para faturação, para o registo de domínio, e é a chave do registo de clientes/slots (ver STATE.md). |
 | **Obrigatório** | ✅ Sim |
+
+### 21. Número AMI
+| Propriedade | Valor |
+|---|---|
+| **Tipo Tally** | Short Answer |
+| **Label** | Número AMI |
+| **Placeholder** | Ex: 12345 |
+| **Obrigatório** | ✅ Sim |
+| **Nota** | Licença de mediação imobiliária — obrigatória por lei em publicidade de imóveis em Portugal. Aparece no rodapé da landing. |
+
+### 22. Classe Energética
+| Propriedade | Valor |
+|---|---|
+| **Tipo Tally** | Dropdown |
+| **Label** | Classe Energética |
+| **Opções** | A+, A, B, B-, C, D, E, F |
+| **Obrigatório** | ✅ Sim |
+| **Nota** | Certificado energético — obrigatório por lei em publicidade de imóveis em Portugal. Entra na ficha técnica. |
 
 ---
 
@@ -176,7 +243,9 @@
 | Extras | `extras[]` | ficha técnica (via Gemini) |
 | Ano de Construção | `ano` | ficha técnica (via Gemini) |
 | Nome/WhatsApp/Email do Corretor | `corretor.{nome,whatsapp,email}` | rodapé, FAB WhatsApp, agendamento |
-| NIF | `nif` | state.json (faturação/domínio, não aparece na landing) |
+| NIF | `nif` | state.json + registo de clientes/slots (faturação/domínio, não aparece na landing) |
+| Número AMI | `ami` | rodapé (disclosure legal) |
+| Classe Energética | `classe_energetica` | ficha técnica |
 
 ---
 
