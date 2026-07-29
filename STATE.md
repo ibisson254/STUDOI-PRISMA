@@ -12,7 +12,7 @@
 ## [AUTO] Verdade de terreno
 
 > Gerado por `verify.ps1` â€” **nao editar a mao**.
-> **Verificado em:** 2026-07-26T01:34:03+01:00 | **Servidor:** `161.35.19.139` | **Commit:** `f7cb9f0`
+> **Verificado em:** 2026-07-26T17:32:45+01:00 | **Servidor:** `161.35.19.139` | **Commit:** `e063259`
 
 Sem falhas criticas. 4 pendencia(s) conhecida(s).
 
@@ -26,7 +26,7 @@ Sem falhas criticas. 4 pendencia(s) conhecida(s).
 | Backup cifrado existe no servidor | OK |
 | Backup replicado FORA do servidor | OK |
 | Restauracao ja foi testada | PENDENTE |
-| Data do ultimo backup | `2026-07-25` |
+| Data do ultimo backup | `2026-07-26` |
 | Modelo Gemini configurado | OK `gemini-3.5-flash` |
 | escapeHtml presente no compilador | OK |
 | escapeAttr presente (safeUrl depende dela) | OK |
@@ -69,36 +69,6 @@ O pipeline processa corretamente o Webhook e chega � chamada do Gemini, mas ba
 ### C. Backup off-site ? FECHADO
 Repo privado `github.com/ibisson254/prisma-backups` criado. Deploy key `ed25519` com write access adicionada. Push confirmado sem erros em 2026-07-16.
 Backup completo (BD + config + workflows + builds) cifrado GPG ? push autom�tico no cron das 03:00.
-
-### Menores
-- **Dois workflows com o mesmo nome** (`66d5ac7f8c71179f` e `tally-onboarding-wf`). Apagar o �rf�o.
-- Password de root ainda por trocar (baixa urg�ncia � password auth desativado).
-
-
-**Sess�o:** 2026-07-18/19 � Fases 1-5 executadas e aprovadas pelo operador (Fase 5 aprovada explicitamente em 2026-07-19).
-
-### Estado
-- Fase 1: `src/imovel_template.html` � 3 arqu�tipos (cinematic/editorial/gallery_first), CSS vars, form agendamento. ?
-- Fase 2: prompt+schema Gemini v2, workflow `imovel-landing-wf` (novo, `tally-onboarding-wf` n�o tocado). Modelo `gemini-3.5-flash` validado contra `/models`. ?
-- Fase 3: Compilador v2 � sweep de placeholders, isolamento de arqu�tipo (1 hero/1 h1), XSS testado em todos os campos. ?
-- Fase 4: `docs/SCHEMA_TALLY_IMOVEL.md` � spec do formul�rio para o operador construir no Tally.so (sem API do Tally neste ambiente). Testado com envelope Tally real (FILE_UPLOAD, CHECKBOXES, v�deo). ?
-- Fase 5: Deploy via NGINX/DigitalOcean (decis�o do operador � sem token Cloudflare dispon�vel); banner de countdown; cron de expira��o hor�rio (`imovel-cron-expiracao-wf`); `state.json` persistido por landing; ficheiros usam `{slug}-{token}.html` com token n�o determin�stico (V1 confirmado); reativa��o sem chamar o Gemini (`imovel-reativar-wf`, V2 confirmado � diff id�ntico exceto banner). ?
-- **Fase 6: PENDENTE (bloqueada, n�o fechada).** Webhook de agendamento (`imovel-agendamento-wf`) configurado, credencial Brevo inserida pela via segura (API REST), workflow importado com sucesso. A API do Brevo aceitou o pedido (HTTP 201, MessageId oficial devolvido), **mas o e-mail nunca chegou � caixa do operador** � o dashboard Brevo rejeitou o envio a jusante com `Sending rejected because the sender leads@prismastudio.pt is not valid`, porque o dom�nio `prismastudio.pt` n�o est� configurado/verificado na conta Brevo. O workflow j� l� o remetente de `$env.BREVO_SENDER_EMAIL` para permitir trocar sem reimportar. **N�o fechar esta fase at� um envio real ser confirmado na caixa de entrada.** N�o bloqueia a Fase 7 (que n�o depende de e-mail).
-
-### ?? (a) Pr�-requisito de venda � BLOQUEANTE antes de qualquer link a cliente real
-> **Nenhum link de preview pode ser entregue a um cliente/lead real enquanto o hosting for `http://161.35.19.139/...`.**
-
-Falta, por esta ordem, antes de qualquer uso comercial:
-1. **Dom�nio de preview** (ex.: um subdom�nio pr�prio tipo `preview.prismastudio.pt` ou a migra��o para Cloudflare Pages j� prevista na spec) � o IP nu n�o � apresent�vel a um cliente pagante nem a um lead de imobili�rio de luxo.
-2. **HTTPS** � atualmente imposs�vel (Let's Encrypt n�o emite para IPs; SSL/HTTPS j� consta como `PENDENTE` no bloco `[AUTO]` acima, bloqueado por falta de dom�nio). Um formul�rio de agendamento com dados pessoais (nome, telefone, email) servido em HTTP puro � uma falha de confian�a e de conformidade.
-
-**Isto n�o bloqueia os testes internos da Fase 7** (o operador aprova por link HTTP interno), mas **bloqueia qualquer entrega a cliente/lead real** e deve ser resolvido antes do Sprint de Pagamento (Ifthenpay/dom�nio), j� adiado para depois da Fase 7 por decis�o anterior do operador.
-
-### (b) Limpeza pendente � workflows tempor�rios no n8n
-5 workflows de teste, todos **inativos** (unpublished, sem rota registada � zero risco em produ��o), criados durante a valida��o de capacidades da inst�ncia (Code node HTTP/fs/exec, cron, helpers). Precisam de remo��o manual pela UI do n8n � n�o h� comando CLI de delete no n8n 2.29.10, e por regra do AGENT.md n�o se edita o SQLite diretamente:
-
-| ID | Nome | Prop�sito (j� cumprido) |
-|---|---|---|
 | `temp-test-code-http-wf` | TEMP - Test Code HTTP | validar `this.helpers.httpRequest` em Code node |
 | `temp-test-fs-wf` | TEMP - Test FS Code | confirmar que `fs` est� bloqueado no sandbox |
 | `temp-test-exec-wf` | TEMP - Test Exec Command | confirmar que o n� Execute Command n�o est� instalado |
