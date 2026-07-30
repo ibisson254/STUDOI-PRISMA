@@ -337,7 +337,7 @@
     <div class="wrap">
       <span class="brandname font-display">{{brand.name}}</span>
       <p>{{imovel.morada}}</p>
-      <p>{{corretor.nome}} · <a href="{{corretor.whatsapp_link}}">{{corretor.whatsapp_display}}</a></p>
+      <p><!--IF:corretor_nome-->{{corretor.nome}} · <!--/IF:corretor_nome--><a href="{{corretor.whatsapp_link}}">{{corretor.whatsapp_display}}</a></p>
       <p><a href="{{brand.privacy_url}}">Política de Privacidade</a></p>
       <div class="legal">© <span id="year"></span> {{brand.name}}. Todos os direitos reservados. · <a href="{{brand.attribution_url}}">{{brand.attribution_label}}</a></div>
     </div>
