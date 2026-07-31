@@ -1,0 +1,20 @@
+version: '3.8'
+services:
+  n8n:
+    image: docker.n8n.io/n8nio/n8n
+    restart: always
+    ports:
+      - "127.0.0.1:5678:5678"
+    environment:
+      - WEBHOOK_URL=http://161.35.19.139/
+      - N8N_HOST=161.35.19.139
+      - N8N_PORT=5678
+      - N8N_PROTOCOL=http
+      - GENERIC_TIMEZONE=Europe/Lisbon
+    volumes: 
+      - n8n_data:/home/node/.n8n
+      - /var/www/prisma-builds:/home/node/.n8n-files/builds
+      - /var/www/prisma-data:/home/node/.n8n-files/data
+      - /var/www/prisma-templates:/home/node/.n8n-files/templates
+volumes:
+  n8n_data:

@@ -1,7 +1,7 @@
 # SCHEMA_TALLY_LIBERTAR.md — Formulário "Libertar Slot" (Sistema de Clientes e Slots)
 
 > **Objetivo:** Permitir que o corretor liberte um slot (imóvel vendido/arrendado) sem intervenção manual do operador — é o que torna a "rotação de inventário" real (ver S4 em STATE.md).
-> **Destino dos dados:** Webhook n8n em `http://161.35.19.139/webhook/libertar-slot`
+> **Destino dos dados:** Webhook n8n em `https://prisma.binderstudios.com/webhook/libertar-slot`
 > **Workflow:** `n8n/imovel-libertar-slot-wf.json` ("Prisma - Libertar Slot")
 
 ---
@@ -24,7 +24,7 @@
 |---|---|
 | **Tipo Tally** | Short Answer |
 | **Label** | Link da Página a Libertar |
-| **Placeholder** | Cole aqui o link da landing que quer retirar (ex: `http://161.35.19.139/moradia-t3-....html`) |
+| **Placeholder** | Cole aqui o link da landing que quer retirar (ex: `https://prisma.binderstudios.com/moradia-t3-....html`) |
 | **Obrigatório** | ✅ Sim |
 | **Nota** | O corretor cola o link completo que recebeu quando o imóvel foi publicado. O código extrai o nome do ficheiro do fim do link — não precisa de saber o `landing_id` interno. |
 

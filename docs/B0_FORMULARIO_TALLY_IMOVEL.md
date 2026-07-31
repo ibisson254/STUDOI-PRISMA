@@ -1,7 +1,7 @@
 # B0 — Especificação Definitiva do Formulário Tally.so (Imóvel Luxo / Prisma Studio)
 
 > **Documento Canónico de Construção (B0)**  
-> **Destino do Webhook:** `http://161.35.19.139/webhook/imovel-landing` (POST JSON)  
+> **Destino do Webhook:** `https://prisma.binderstudios.com/webhook/imovel-landing` (POST JSON)  
 > **Validação do Código (`Prepara Payload Diretor`):** Os labels listados abaixo são lidos por correspondência exata ou sinónimos case-insensitive. Os campos marcados com **✅ Sim** são validados com *fail-loud* (se algum faltar, o pipeline rejeita com HTTP 500 antes de chamar o Gemini).
 
 ---
@@ -190,7 +190,7 @@ Para otimizar a conversão (UX) no Tally.so, o formulário de 22 campos deve ser
 ## ⚙️ Configuração da Integração Webhook no Tally.so
 
 1. No painel do Tally, aceda a **Settings** → **Integrations** → **Webhooks**.
-2. **Endpoint URL:** `http://161.35.19.139/webhook/imovel-landing`
+2. **Endpoint URL:** `https://prisma.binderstudios.com/webhook/imovel-landing`
 3. **HTTP Method:** `POST`
 4. **Formato:** JSON (padrão Tally)
 

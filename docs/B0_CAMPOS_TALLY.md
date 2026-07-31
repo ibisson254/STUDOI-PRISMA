@@ -163,12 +163,12 @@ Após construir o formulário, configurar o webhook em **Integrations → Webhoo
 
 | Campo | Valor |
 |---|---|
-| URL | `http://161.35.19.139/webhook/imovel-landing` |
+| URL | `https://prisma.binderstudios.com/webhook/imovel-landing` |
 | Método | POST |
 | Formato | JSON (padrão Tally) |
 
-> [!WARNING]
-> Substituir `http://161.35.19.139` pelo domínio HTTPS final antes de qualquer uso comercial — obrigatório antes de entregar qualquer link a um cliente real (bloqueante desde Sprint 0).
+> [!NOTE]
+> HTTPS ativo desde 2026-07-31 (Let's Encrypt via certbot, renovação automática). O Tally exige HTTPS no webhook — o endpoint em `http://161.35.19.139/...` deixou de ser válido para esse fim.
 
 ---
 

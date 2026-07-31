@@ -1,7 +1,7 @@
 # SCHEMA_TALLY_IMOVEL.md — Formulário "Landing de Imóvel" (Motor v2)
 
 > **Objetivo:** Recolher os dados de UM imóvel para gerar a sua landing page individual via o motor Prisma v2 (imobiliário de luxo).
-> **Destino dos dados:** Webhook n8n em `http://161.35.19.139:5678/webhook/imovel-landing`
+> **Destino dos dados:** Webhook n8n em `https://prisma.binderstudios.com/webhook/imovel-landing`
 > **Modelo de negócio:** uma landing por imóvel. Este formulário reabre-se (com token) durante a janela de 7 dias de alterações — ver §7 da SPEC-MOTOR-V2-IMOBILIARIO.md.
 
 ---
@@ -219,7 +219,7 @@ Legenda obrigatório/AMI/Classe Energética: **Número AMI** é a licença de me
 ## Ligação ao Webhook n8n
 
 1. Tally.so → **Settings** → **Integrations** → **Webhooks**
-2. URL: `http://161.35.19.139:5678/webhook/imovel-landing`
+2. URL: `https://prisma.binderstudios.com/webhook/imovel-landing`
 3. Método: **POST**
 
 ---
