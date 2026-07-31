@@ -208,7 +208,25 @@ Testado localmente (5 cenarios: completo, falta destaque2, so 2 fotos, falta wha
 
 **Achado nao relacionado com H1-H5, descoberto durante o teste E2E: o no `Porteiro` (mais a frente no pipeline de `imovel-landing-wf`, gestao de slots/clientes) exige um NIF valido e registado -- falha com `PORTEIRO: NIF ausente ou invalido apos normalizacao` mesmo que o G1 (M2) considere `nif` opcional.** Ou seja: `nif` deixou de ser bloqueante para a VALIDACAO DE ENTRADA (G1), mas continua a ser bloqueante mais tarde, com uma mensagem de erro diferente e menos obvia, se o NIF nao existir no registo de clientes (`clientes.json`). Isto nao foi corrigido nesta sessao (fora do pedido) -- registado para o operador decidir se o MODO TESTE de `nif` em G1 deve ser acompanhado de um ajuste equivalente no `Porteiro`, ou se o `Porteiro` e que reflete o requisito real (um imovel sem cliente/slot associado nao devia publicar-se de qualquer forma).
 
-**Nao commitado ainda** (repo tem `n8n/*.json`, `docs/B0_*`, `docs/SCHEMA_TALLY_IMOVEL.md`, `docs/SCHEMA_TALLY_LIBERTAR.md`, `infra/nginx.conf` e `infra/docker-compose.yml` modificados/novos localmente) -- a aguardar instrucao explicita para commit+push, por regra de nao commitar sem pedido direto.
+**Commitado e enviado** (aprovado pelo operador): commit `4012f91` "feat: HTTPS via prisma.binderstudios.com (certbot + nginx), migra URLs do pipeline para dominio; versiona infra/nginx.conf e infra/docker-compose.yml (nunca antes no repo)". `git status` limpo, `git push` confirmado (`b2545ab..4012f91 main -> main`).
+
+### Sessao 2026-07-31 (cont.) -- correcao do Porteiro (S2) para o MODO TESTE de nif
+
+Achado da sessao anterior confirmado e corrigido, com aprovacao do operador (desenho original S2: NIF novo -> cria cliente automaticamente; so bloqueia por conta suspensa ou slots esgotados).
+
+**(a) Criacao automatica de cliente:** ja estava implementada no `Porteiro` (`code-porteiro-1`) -- confirmado por leitura direta do codigo (nao foi preciso implementar). Bloqueio real era so o `if (!nif) throw` a disparar ANTES de chegar a essa logica, sempre que `nif` vinha vazio (permitido desde o M2).
+
+**(b) Normalizacao do NIF:** ja correta, sem bug -- `.replace(/\D/g, '')` reduz `"123456789"`, `"123 456 789"` e `"PT123456789"` todos a exatamente `"123456789"`. Confirmado com teste direto no codigo real extraido do workflow (nao simulado): as 3 variantes convergem para a mesma chave. A falha original nao era de normalizacao, era de `nif` genuinamente vazio (caso c).
+
+**(c) NIF vazio -- implementado MODO TESTE:** em `Prepara Payload Diretor`, apos calcular `campos_ausentes` (que continua a listar `nif` como ausente, sem mentir sobre o que o cliente realmente enviou), gera-se `nifFinal = nif || ('TESTE-' + Date.now())` e escreve-se em `imovel.nif` apenas quando `nif` estava vazio (`nifPlaceholderUsado`). Este flag e propagado (mesmo padrao do `campos_ausentes`: `Monta Prompt Diretor` -> `Parseia Diretor e Monta Copywriter` -> `Compilador Editorial`) ate `stateJson.nif_placeholder`. No `Porteiro`, a normalizacao passou a preservar literalmente qualquer nif que comece por `TESTE-` (nao reduz a digitos), para a entrada no registo de clientes ficar obviamente distinta de um NIF real -- so nifs reais continuam a ser reduzidos a digitos. Comentario `// MODO TESTE` deixado em ambos os nos.
+
+**(d) Testado em producao real via HTTPS (nao simulado):**
+- POST com NIF em formato `"PT 111 222 333"` -> `HTTP 200`; `clientes.json` no servidor ganhou a chave normalizada `"111222333"` (cliente novo, `plano: beta`, `slots_total: 5`).
+- POST sem `nif` -> `HTTP 200`; `state.json` da landing confirma `nif_placeholder: true`, `cliente.nif: "TESTE-1785456842336"`, e `campos_ausentes` continua a incluir `"nif"` (nao esconde que faltou); `clientes.json` ganhou essa chave `TESTE-...` literal, distinta de qualquer NIF real.
+- Teste do limite de slots (5/5 -> bloqueia o 6o): confirmado diretamente no codigo do `Porteiro` com um cliente fixture de 5 paginas `publicado` -- bloqueia com a mensagem `PORTEIRO: limite atingido -- 5/5 ...`, como esperado.
+- **Achado importante ao tentar reproduzir "o mesmo NIF 6x via imovel-landing-wf bloqueia na 6a":** nao bloqueia. Confirmado com 6 submissoes reais seguidas ao mesmo NIF novo -- `publicadas` fica em `0/5` nas 6, porque o `Porteiro`/`Escreve Clientes` do `imovel-landing-wf` **nunca** escreve em `cliente.paginas` (so cria/identifica o cliente). Quem ocupa efetivamente um slot (`paginas.push(..., estado:'publicado')`) e o no "Atualiza Slot Publicacao" do `imovel-reativar-wf`, na transicao para `estado: publicado` -- ou seja, gerar previews (mesmo repetidamente) nunca esgota slots; so a publicacao efetiva (fora do ambito de `imovel-landing-wf`) e que conta. Isto nao foi alterado nesta sessao -- o operador decide se quer limitar tambem a criacao de previews.
+
+Artefactos de teste (2 landings, 8 fotos, 2 entradas em `clientes.json`) removidos do servidor no fim; o cliente fixture pre-existente `123456789` ("Joao Teste") ficou intacto.
 
 ---
 
