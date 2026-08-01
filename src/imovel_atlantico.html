@@ -41,6 +41,11 @@
       --sp-6:3rem;--sp-8:4rem;--sp-10:5rem;--sp-12:6rem;--sp-16:8rem;--sp-20:10rem;
       --banner-h:0px;
       --vh:100vh;
+      /* MO1 — tokens de movimento */
+      --ease-out-expo:cubic-bezier(0.16,1,0.3,1);
+      --ease-out-quart:cubic-bezier(0.25,1,0.5,1);
+      --dur-slow:1.2s;--dur-med:.6s;--dur-fast:.3s;
+      --stagger:90ms;
     }
     @supports (height:100dvh){:root{--vh:100dvh}}
 
@@ -60,10 +65,10 @@
     .eyebrow{font-family:var(--font-body);font-weight:600;font-size:.72rem;letter-spacing:.22em;text-transform:uppercase;color:inherit;opacity:.85;margin:0 0 var(--sp-2)}
 
     .btn-ghost{display:inline-flex;align-items:center;gap:.6rem;padding:.4rem 0;min-height:44px;background:none;border:0;color:inherit;font-weight:600;font-size:.85rem;letter-spacing:.05em;text-decoration:none;position:relative;cursor:pointer}
-    .btn-ghost::after{content:"";position:absolute;left:0;right:0;bottom:.4rem;height:1px;background:currentColor;opacity:.55;transition:opacity .25s ease}
+    .btn-ghost::after{content:"";position:absolute;left:0;right:0;bottom:.4rem;height:1px;background:currentColor;opacity:.55;transition:opacity var(--dur-fast) var(--ease-out-quart)}
     .btn-ghost:hover::after{opacity:1}
-    .btn-fill{display:inline-flex;align-items:center;justify-content:center;padding:.95rem var(--sp-4);min-height:44px;border-radius:1px;background:var(--accent);color:var(--bg);font-weight:600;font-size:.82rem;letter-spacing:.05em;text-decoration:none;border:0;cursor:pointer;transition:transform .25s ease}
-    .btn-fill:hover{transform:translateY(-2px)}
+    .btn-fill{display:inline-flex;align-items:center;justify-content:center;padding:.95rem var(--sp-4);min-height:44px;border-radius:1px;background:var(--accent);color:var(--bg);font-weight:600;font-size:.82rem;letter-spacing:.05em;text-decoration:none;border:0;cursor:pointer;transition:transform var(--dur-fast) var(--ease-out-quart),box-shadow var(--dur-fast) var(--ease-out-quart)}
+    .btn-fill:hover{transform:translateY(-2px);box-shadow:0 8px 24px rgba(0,0,0,.22)}
     .btn-block{width:100%}
 
     /* Preview banner -- identico ao da colecao editorial (ja aprovado) */
@@ -73,7 +78,7 @@
 
     /* Header -- flutuante e transparente sobre o hero; ganha fundo
        apenas depois de se afastar do hero (classe .scrolled via JS) */
-    header{position:fixed;top:var(--banner-h);left:0;right:0;z-index:60;color:#fff;transition:background-color .3s ease,color .3s ease,border-color .3s ease}
+    header{position:fixed;top:var(--banner-h);left:0;right:0;z-index:60;color:#fff;transition:background-color var(--dur-med) var(--ease-out-quart),color var(--dur-med) var(--ease-out-quart),border-color var(--dur-med) var(--ease-out-quart)}
     header .row{display:flex;align-items:center;justify-content:space-between;gap:var(--sp-2);padding:var(--sp-3) var(--sp-3)}
     @media(min-width:768px){header .row{padding:var(--sp-4) var(--sp-6)}}
     header.scrolled{background:color-mix(in srgb, var(--bg) 90%, transparent);color:var(--ink);backdrop-filter:blur(8px);border-bottom:1px solid rgba(0,0,0,.06)}
@@ -81,13 +86,28 @@
     .monogram{width:2.25rem;height:2.25rem;border-radius:50%;border:1px solid currentColor;display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-size:.85rem;letter-spacing:.05em;flex:none}
     .brandname{font-family:var(--font-display);font-size:.95rem;font-weight:600;letter-spacing:.03em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 
+    /* I4 -- tratamento de imagem adaptativo (ver imovel_editorial.html
+       para o racional completo). Aplicado ao .panel-veil/.frame-media,
+       que ja sao position:absolute/relative -- nunca ao .panel-media,
+       para nao interferir com o inset:0 que o preenche por completo. */
+    .foto-realce::after{content:'';position:absolute;inset:0;pointer-events:none;
+      background:radial-gradient(ellipse at center, rgba(0,0,0,0) 55%, rgba(0,0,0,.4) 100%),
+        url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.4'/%3E%3C/svg%3E");
+      background-size:cover, 140px 140px;mix-blend-mode:overlay;opacity:.5}
+    .foto-realce.foto-thumb::after{opacity:.65}
+    body[data-fotos="duotone"] .panel-media img,
+    body[data-fotos="duotone"] .frame-media img{filter:grayscale(1) contrast(1.1)}
+    body[data-fotos="duotone"] .panel-veil::before,
+    body[data-fotos="duotone"] .frame-media::before{content:'';position:absolute;inset:0;z-index:1;
+      background:var(--accent);mix-blend-mode:color;opacity:.5;pointer-events:none}
+
     /* Paineis de ecra total -- imagem absoluta + veu de legibilidade
        + bloco de texto minimo ancorado ao fundo. Usados no hero e em
        cada destaque de "02 A Casa". */
     .panel{position:relative;min-height:var(--vh);display:flex;align-items:flex-end;overflow:hidden}
     .panel-media{position:absolute;inset:0}
     .panel-media img{width:100%;height:100%;object-fit:cover}
-    .panel-veil{position:absolute;inset:0;background:linear-gradient(to top, rgba(0,0,0,.65) 0%, rgba(0,0,0,.15) 45%, rgba(0,0,0,0) 65%)}
+    .panel-veil{position:absolute;inset:0;background:linear-gradient(to top, rgba(0,0,0,.85) 0%, rgba(0,0,0,.45) 40%, transparent 70%)}
     .panel-copy{position:relative;z-index:2;color:#fff;padding:var(--sp-6) var(--sp-3) var(--sp-10)}
     .panel-copy .wrap{padding-inline:0}
     @media(min-width:768px){.panel-copy{padding:var(--sp-8) var(--sp-6) var(--sp-12)}}
@@ -132,7 +152,7 @@
     .frame{flex:none;width:78vw;max-width:32rem;scroll-snap-align:start}
     @media(min-width:768px){.frame{width:38vw;max-width:34rem}}
     .frame-media{position:relative;aspect-ratio:3/4;overflow:hidden;background:var(--bg);cursor:pointer;border:0;padding:0;width:100%}
-    .frame-media img{width:100%;height:100%;object-fit:cover;transition:transform .6s ease}
+    .frame-media img{width:100%;height:100%;object-fit:cover;transition:transform var(--dur-slow) var(--ease-out-quart)}
     .frame-media:hover img{transform:scale(1.04)}
     .frame-num{position:absolute;top:var(--sp-2);left:var(--sp-2);font-family:var(--font-display);font-size:.8rem;color:#fff;background:rgba(0,0,0,.35);padding:.15rem .55rem;border-radius:999px}
     .frame-caption{margin-top:var(--sp-2);font-size:.85rem;color:color-mix(in srgb, var(--ink) 65%, transparent)}
@@ -160,12 +180,23 @@
     footer a{text-decoration:underline;text-underline-offset:.15em}
     footer .legal{margin-top:var(--sp-6);padding-top:var(--sp-4);border-top:1px solid rgba(0,0,0,.08);font-size:.78rem;color:color-mix(in srgb, var(--ink) 50%, transparent)}
 
-    .fab{position:fixed;z-index:50;display:flex;align-items:center;justify-content:center;width:56px;height:56px;border-radius:50%;background:#25D366;color:#062611;box-shadow:0 4px 14px rgba(0,0,0,.2);bottom:calc(var(--sp-3) + env(safe-area-inset-bottom,0px));right:calc(var(--sp-3) + env(safe-area-inset-right,0px));transition:transform .2s ease}
+    .fab{position:fixed;z-index:50;display:flex;align-items:center;justify-content:center;width:56px;height:56px;border-radius:50%;background:#25D366;color:#062611;box-shadow:0 4px 14px rgba(0,0,0,.2);bottom:calc(var(--sp-3) + env(safe-area-inset-bottom,0px));right:calc(var(--sp-3) + env(safe-area-inset-right,0px));transition:transform var(--dur-fast) var(--ease-out-quart)}
     .fab:hover{transform:scale(1.08)}
 
-    .reveal{opacity:0;transform:translateY(24px);transition:opacity .8s ease,transform .8s ease}
+    /* MO2+MO3 — reveal com easing expo + stagger */
+    .reveal{opacity:0;transform:translateY(36px);transition:opacity var(--dur-slow) var(--ease-out-expo),transform var(--dur-slow) var(--ease-out-expo);transition-delay:calc(var(--stagger-i,0)*var(--stagger))}
     .reveal.visible{opacity:1;transform:none}
-    @media(prefers-reduced-motion:reduce){.reveal{opacity:1!important;transform:none!important;transition:none!important}}
+    /* MO5 — underline crescente da esquerda */
+    .link-underline{position:relative;text-decoration:none}
+    .link-underline::after{content:'';position:absolute;left:0;bottom:-1px;width:100%;height:1px;background:currentColor;transform:scaleX(0);transform-origin:left;transition:transform var(--dur-fast) var(--ease-out-quart)}
+    .link-underline:hover::after{transform:scaleX(1)}
+    /* prefers-reduced-motion — conteúdo sempre visível */
+    @media(prefers-reduced-motion:reduce){
+      .reveal{opacity:1!important;transform:none!important;transition:none!important;transition-delay:0s!important}
+      .panel-media img{transform:none!important;will-change:auto!important}
+      .scroll-cue{animation:none!important;opacity:.6}
+      *{transition-duration:.01ms!important;animation-duration:.01ms!important;animation-iteration-count:1!important}
+    }
 
     #lightbox{display:none;position:fixed;inset:0;z-index:1001;background:rgba(0,0,0,.96);align-items:center;justify-content:center;padding:1rem}
     #lightbox.open{display:flex}
@@ -191,9 +222,11 @@
     "offers": { "@type": "Offer", "price": "{{imovel.preco_valor}}", "priceCurrency": "EUR" }
   }
   </script>
+  <!-- MO4 — Lenis smooth scroll, self-hosted -->
+  <script src="/assets/lenis.min.js" defer></script>
 </head>
 
-<body>
+<body data-fotos="{{identity.tratamento_fotos}}">
 
   <a href="#main" class="skip-link">Saltar para o conteúdo</a>
 
@@ -235,13 +268,13 @@
     <!-- HERO — ecra total, texto minimo ancorado ao fundo -->
     <section class="panel" id="hero-panel">
       <div class="panel-media"><img src="{{imovel.foto_hero}}" {{imovel.foto_hero_srcset}} alt="{{imovel.titulo}}" loading="eager"></div>
-      <div class="panel-veil" aria-hidden="true"></div>
+      <div class="panel-veil{{imovel.foto_hero_qualidade_class}}" aria-hidden="true"></div>
       <div class="panel-copy">
         <div class="wrap">
-          <p class="eyebrow">{{hero.eyebrow}}</p>
-          <h1>{{hero.headline}}</h1>
-          <p>{{hero.subheadline}}</p>
-          <a href="#visita" class="btn-fill">{{hero.cta_label}}</a>
+          <p class="eyebrow reveal" style="--stagger-i:0">{{hero.eyebrow}}</p>
+          <h1 class="reveal" style="--stagger-i:1">{{hero.headline}}</h1>
+          <p class="reveal" style="--stagger-i:2">{{hero.subheadline}}</p>
+          <a href="#visita" class="btn-fill reveal" id="hero-cta" style="--stagger-i:3">{{hero.cta_label}}</a>
         </div>
       </div>
       <div class="scroll-cue" aria-hidden="true"></div>
@@ -266,7 +299,7 @@
       {{#imovel.destaques}}
       <div class="panel">
         <div class="panel-media"><img src="{{fotoSrc}}" {{fotoSrcset}} alt="{{titulo}}" loading="lazy"></div>
-        <div class="panel-veil" aria-hidden="true"></div>
+        <div class="panel-veil{{qualidadeClass}}" aria-hidden="true"></div>
         <div class="panel-copy">
           <div class="wrap">
             <h2>{{titulo}}</h2>
@@ -291,7 +324,7 @@
         <!--/IF:video-->
         {{#galeria.fotos}}
         <div class="frame" role="listitem">
-          <button type="button" class="lightbox-trigger frame-media" data-src="{{src}}" data-legenda="{{legenda}}" aria-label="{{ariaLabel}}">
+          <button type="button" class="lightbox-trigger frame-media{{qualidadeClass}}" data-src="{{src}}" data-legenda="{{legenda}}" aria-label="{{ariaLabel}}">
             <img src="{{src}}" {{srcset}} alt="{{alt}}" loading="lazy">
             <span class="frame-num" aria-hidden="true">{{idx}}</span>
           </button>
@@ -356,86 +389,261 @@
   </div>
 
   <script>
-    var io=new IntersectionObserver(function(ee){
-      ee.forEach(function(e){if(e.isIntersecting){e.target.classList.add('visible');io.unobserve(e.target)}})
-    },{threshold:.15,rootMargin:'0px 0px -40px 0px'});
-    document.querySelectorAll('.reveal').forEach(function(el){io.observe(el)});
+  /* ================================================================
+     CAMADA DE MOVIMENTO — MO1-MO8 (ATLÂNTICO)
+     CSS/JS nativo + Lenis self-hosted. Zero GSAP.
+     Apenas transform + opacity (GPU). IO para reveals.
+     rAF para parallax. prefers-reduced-motion seguro.
+     ================================================================ */
 
-    document.getElementById('year').textContent=new Date().getFullYear();
+  var reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-    /* Header ganha fundo solido assim que o hero sai de vista */
-    var header=document.getElementById('site-header');
-    var heroPanel=document.getElementById('hero-panel');
-    if(header && heroPanel){
-      var headerIo=new IntersectionObserver(function(entries){
-        entries.forEach(function(entry){
-          header.classList.toggle('scrolled', !entry.isIntersecting);
-        });
-      },{rootMargin:'-90% 0px 0px 0px'});
-      headerIo.observe(heroPanel);
-    }
+  /* ── MO3: Stagger em grupos de irmãos ── */
+  function assignStagger(selector) {
+    document.querySelectorAll(selector).forEach(function(el, i) {
+      el.style.setProperty('--stagger-i', i);
+    });
+  }
+  assignStagger('.ficha-list li');
+  assignStagger('.chip');
+  assignStagger('.frame');
 
-    var banner=document.getElementById('preview-banner');
-    if(banner){
-      var expires=new Date(banner.getAttribute('data-expires')).getTime();
-      var countdownEl=document.getElementById('preview-countdown');
-      if(expires && !isNaN(expires)){
-        var tick=function(){
-          var diff=expires-Date.now();
-          if(diff<=0){countdownEl.textContent='expirado';clearInterval(timer);return}
-          var h=Math.floor(diff/3600000), m=Math.floor((diff%3600000)/60000), s=Math.floor((diff%60000)/1000);
-          countdownEl.textContent=String(h).padStart(2,'0')+':'+String(m).padStart(2,'0')+':'+String(s).padStart(2,'0');
-        };
-        tick();
-        var timer=setInterval(tick,1000);
-      }
-    }
-
-    var lb=document.getElementById('lightbox'), lbImg=document.getElementById('lightbox-img'), lbCap=document.getElementById('lightbox-caption');
-    document.querySelectorAll('.lightbox-trigger').forEach(function(btn){
-      btn.addEventListener('click',function(){
-        lbImg.src=btn.getAttribute('data-src');
-        lbImg.alt=btn.getAttribute('data-legenda')||'';
-        lbCap.textContent=btn.getAttribute('data-legenda')||'';
-        lb.classList.add('open');
+  /* ── MO2: IO para reveals ── */
+  var revealIO = new IntersectionObserver(function(entries) {
+    entries.forEach(function(entry) {
+      if(!entry.isIntersecting) return;
+      var el = entry.target;
+      el.classList.add('visible');
+      revealIO.unobserve(el);
+      el.addEventListener('transitionend', function handler() {
+        el.style.willChange = 'auto';
+        el.removeEventListener('transitionend', handler);
       });
     });
-    function closeLightbox(){lb.classList.remove('open');lbImg.src=''}
-    document.getElementById('lightbox-close').addEventListener('click',closeLightbox);
-    lb.addEventListener('click',function(e){if(e.target===lb)closeLightbox()});
-    document.addEventListener('keydown',function(e){if(e.key==='Escape')closeLightbox()});
+  }, {threshold: .12, rootMargin: '0px 0px -32px 0px'});
 
-    var form=document.getElementById('form-agendamento');
-    if(form){
-      form.addEventListener('submit',function(e){
-        e.preventDefault();
-        var status=document.getElementById('form-status');
-        var btn=form.querySelector('button[type="submit"]');
-        var endpoint=form.getAttribute('data-endpoint');
-        var payload={
-          landing_id: form.getAttribute('data-landing-id'),
-          nome: form.nome.value, telefone: form.telefone.value, email: form.email.value,
-          data: form.data.value, mensagem: form.mensagem.value
-        };
-        btn.disabled=true;
-        status.textContent='A enviar...';
-        status.style.color='';
-        fetch(endpoint,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)})
-          .then(function(r){if(!r.ok)throw new Error('fail');return r.json().catch(function(){return {}})})
-          .then(function(){
-            status.textContent='Pedido enviado! O corretor entrará em contacto em breve.';
-            status.style.color='#eafff0';
-            form.reset();
-            if(typeof fbq==='function'){fbq('track','Lead')}
-            if(typeof gtag==='function'){gtag('event','generate_lead')}
-          })
-          .catch(function(){
-            status.textContent='Não foi possível enviar. Tente novamente ou contacte por WhatsApp.';
-            status.style.color='#ffd9d9';
-          })
-          .finally(function(){btn.disabled=false});
+  document.querySelectorAll('.reveal').forEach(function(el) {
+    if(reduceMotion) {
+      el.classList.add('visible');
+      return;
+    }
+    el.style.willChange = 'transform, opacity';
+    revealIO.observe(el);
+  });
+
+  /* ── Ano no rodapé ── */
+  document.getElementById('year').textContent = new Date().getFullYear();
+
+  /* ── Header ganha fundo sólido quando o hero sai de vista ── */
+  var header = document.getElementById('site-header');
+  var heroPanel = document.getElementById('hero-panel');
+  if(header && heroPanel) {
+    var headerIo = new IntersectionObserver(function(entries) {
+      entries.forEach(function(entry) {
+        header.classList.toggle('scrolled', !entry.isIntersecting);
+      });
+    }, {rootMargin: '-90% 0px 0px 0px'});
+    headerIo.observe(heroPanel);
+  }
+
+  /* ── Preview banner countdown ── */
+  var banner = document.getElementById('preview-banner');
+  if(banner) {
+    var expires = new Date(banner.getAttribute('data-expires')).getTime();
+    var countdownEl = document.getElementById('preview-countdown');
+    if(expires && !isNaN(expires)) {
+      var tick = function() {
+        var diff = expires - Date.now();
+        if(diff <= 0) { countdownEl.textContent = 'expirado'; clearInterval(timer); return; }
+        var h = Math.floor(diff/3600000), m = Math.floor((diff%3600000)/60000), s = Math.floor((diff%60000)/1000);
+        countdownEl.textContent = String(h).padStart(2,'0')+':'+String(m).padStart(2,'0')+':'+String(s).padStart(2,'0');
+      };
+      tick();
+      var timer = setInterval(tick, 1000);
+    }
+  }
+
+  /* ── Lightbox ── */
+  var lb = document.getElementById('lightbox'),
+      lbImg = document.getElementById('lightbox-img'),
+      lbCap = document.getElementById('lightbox-caption');
+  document.querySelectorAll('.lightbox-trigger').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      lbImg.src = btn.getAttribute('data-src');
+      lbImg.alt = btn.getAttribute('data-legenda') || '';
+      lbCap.textContent = btn.getAttribute('data-legenda') || '';
+      lb.classList.add('open');
+    });
+  });
+  function closeLightbox() { lb.classList.remove('open'); lbImg.src = ''; }
+  document.getElementById('lightbox-close').addEventListener('click', closeLightbox);
+  lb.addEventListener('click', function(e) { if(e.target === lb) closeLightbox(); });
+  document.addEventListener('keydown', function(e) { if(e.key === 'Escape') closeLightbox(); });
+
+  /* ── MO8: Parallax — hero 0.15×, destaque panels 0.08× ── */
+  if(!reduceMotion) {
+    /* Hero panel (0.15×) */
+    var heroImgEl = document.querySelector('#hero-panel .panel-media img');
+    var heroMediaEl = document.querySelector('#hero-panel .panel-media');
+    if(heroImgEl && heroMediaEl) {
+      var heroVis = true; /* hero começa visível */
+      heroImgEl.style.willChange = 'transform';
+      var heroParIo = new IntersectionObserver(function(ee) {
+        heroVis = ee[0].isIntersecting;
+        heroImgEl.style.willChange = heroVis ? 'transform' : 'auto';
+      });
+      heroParIo.observe(heroMediaEl);
+      var heroTick = false;
+      window.addEventListener('scroll', function() {
+        if(!heroVis || heroTick) return;
+        heroTick = true;
+        requestAnimationFrame(function() {
+          var rect = heroMediaEl.getBoundingClientRect();
+          var py = Math.max(-80, Math.min(80, rect.top * -0.15));
+          heroImgEl.style.transform = 'translateY(' + py + 'px) scale(1.2)';
+          heroTick = false;
+        });
+      }, {passive: true});
+    }
+
+    /* Destaque panels (0.08×) — exclui o hero */
+    var panelItems = [];
+    document.querySelectorAll('.panel:not(#hero-panel) .panel-media img').forEach(function(img) {
+      img.style.transform = 'translateY(0) scale(1.12)';
+      var vis = false;
+      var pIo = new IntersectionObserver(function(ee) {
+        vis = ee[0].isIntersecting;
+        img.style.willChange = vis ? 'transform' : 'auto';
+      });
+      pIo.observe(img);
+      panelItems.push({img: img, isVis: function() { return vis; }});
+    });
+    if(panelItems.length) {
+      var panelTick = false;
+      window.addEventListener('scroll', function() {
+        if(panelTick) return;
+        panelTick = true;
+        requestAnimationFrame(function() {
+          panelItems.forEach(function(item) {
+            if(!item.isVis()) return;
+            var rect = item.img.getBoundingClientRect();
+            var py = Math.max(-40, Math.min(40, rect.top * -0.08));
+            item.img.style.transform = 'translateY(' + py + 'px) scale(1.12)';
+          });
+          panelTick = false;
+        });
+      }, {passive: true});
+    }
+  }
+
+  /* ── MO6: Cursor magnético no CTA do hero — window-level, rAF throttle ── */
+  if(!reduceMotion && window.matchMedia('(pointer:fine)').matches) {
+    var magBtn = document.getElementById('hero-cta');
+    if(magBtn) {
+      var magRafPending = false, magActive = false;
+      var magRadius = 80, magMax = 15;
+      window.addEventListener('mousemove', function(e) {
+        if(magRafPending) return;
+        magRafPending = true;
+        requestAnimationFrame(function() {
+          magRafPending = false;
+          var r = magBtn.getBoundingClientRect();
+          var cx = r.left + r.width / 2, cy = r.top + r.height / 2;
+          var dx = e.clientX - cx, dy = e.clientY - cy;
+          var dist = Math.sqrt(dx * dx + dy * dy);
+          if(dist < magRadius) {
+            if(!magActive) {
+              magActive = true;
+              magBtn.style.transition = 'box-shadow var(--dur-fast) var(--ease-out-quart)';
+            }
+            var safe = dist < 0.5 ? 0.5 : dist;
+            var factor = (1 - dist / magRadius) * magMax;
+            magBtn.style.transform = 'translate(' + (dx/safe*factor) + 'px,' + (dy/safe*factor) + 'px)';
+          } else if(magActive) {
+            magActive = false;
+            magBtn.style.transition = 'transform var(--dur-med) var(--ease-out-expo),box-shadow var(--dur-fast) var(--ease-out-quart)';
+            magBtn.style.transform = '';
+          }
+        });
       });
     }
+  }
+
+  /* ── MO7: Contador do preço ── */
+  (function() {
+    var priceEl = document.querySelector('.price-hero');
+    if(!priceEl || reduceMotion) return;
+    var original = priceEl.textContent.trim();
+    var m = original.match(/^([\.\d]+)([\.\s\S]*)$/);
+    if(!m) return;
+    var numRaw = m[1].replace(/\./g, '');
+    var num = parseInt(numRaw, 10);
+    if(isNaN(num) || num < 1000) return;
+    var tail = m[2];
+    var counted = false;
+    var counterIO = new IntersectionObserver(function(entries) {
+      if(!entries[0].isIntersecting || counted) return;
+      counted = true;
+      counterIO.unobserve(priceEl);
+      var start = performance.now();
+      var dur = 1500;
+      function frame(now) {
+        var t = Math.min((now - start) / dur, 1);
+        var ease = t === 1 ? 1 : 1 - Math.pow(2, -10 * t);
+        var val = Math.round(ease * num);
+        try {
+          priceEl.textContent = new Intl.NumberFormat('pt-PT').format(val) + tail;
+          if(t < 1) requestAnimationFrame(frame);
+          else priceEl.textContent = original;
+        } catch(err) { priceEl.textContent = original; }
+      }
+      try {
+        priceEl.textContent = '0' + tail;
+        requestAnimationFrame(frame);
+      } catch(err) { priceEl.textContent = original; }
+    }, {threshold: 0.6});
+    try { counterIO.observe(priceEl); } catch(err) { /* IO indisponível */ }
+  })();
+
+  /* ── MO4: Lenis smooth scroll ── */
+  if(!reduceMotion && typeof Lenis !== 'undefined') {
+    var lenis = new Lenis({lerp: 0.09, smoothWheel: true});
+    function lenisRaf(t) { lenis.raf(t); requestAnimationFrame(lenisRaf); }
+    requestAnimationFrame(lenisRaf);
+  }
+
+  /* ── Formulário de agendamento ── */
+  var form = document.getElementById('form-agendamento');
+  if(form) {
+    form.addEventListener('submit', function(e) {
+      e.preventDefault();
+      var status = document.getElementById('form-status');
+      var btn = form.querySelector('button[type="submit"]');
+      var endpoint = form.getAttribute('data-endpoint');
+      var payload = {
+        landing_id: form.getAttribute('data-landing-id'),
+        nome: form.nome.value, telefone: form.telefone.value, email: form.email.value,
+        data: form.data.value, mensagem: form.mensagem.value
+      };
+      btn.disabled = true;
+      status.textContent = 'A enviar...';
+      status.style.color = '';
+      fetch(endpoint, {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(payload)})
+        .then(function(r) { if(!r.ok) throw new Error('fail'); return r.json().catch(function() { return {}; }); })
+        .then(function() {
+          status.textContent = 'Pedido enviado! O corretor entrará em contacto em breve.';
+          status.style.color = '#eafff0';
+          form.reset();
+          if(typeof fbq === 'function') { fbq('track', 'Lead'); }
+          if(typeof gtag === 'function') { gtag('event', 'generate_lead'); }
+        })
+        .catch(function() {
+          status.textContent = 'Não foi possível enviar. Tente novamente ou contacte por WhatsApp.';
+          status.style.color = '#ffd9d9';
+        })
+        .finally(function() { btn.disabled = false; });
+    });
+  }
   </script>
 
 </body>
