@@ -1,4 +1,4 @@
-# STATE.md � PRISMA STUDIO
+﻿# STATE.md � PRISMA STUDIO
 
 > **Este ficheiro tem dois blocos com donos diferentes.**
 > **`[AUTO]`** � escrito pelo `verify.sh` contra o servidor real. **NENHUM agente ou humano edita isto � m�o.**
@@ -12,7 +12,7 @@
 ## [AUTO] Verdade de terreno
 
 > Gerado por `verify.ps1` â€” **nao editar a mao**.
-> **Verificado em:** 2026-08-02T01:30:14+01:00 | **Servidor:** `prisma.binderstudios.com` | **Commit:** `6933147`
+> **Verificado em:** 2026-08-02T23:40:18+01:00 | **Servidor:** `161.35.19.139` | **Commit:** `4b458c9`
 
 Sem falhas criticas. 4 pendencia(s) conhecida(s).
 
@@ -26,7 +26,7 @@ Sem falhas criticas. 4 pendencia(s) conhecida(s).
 | Backup cifrado existe no servidor | OK |
 | Backup replicado FORA do servidor | OK |
 | Restauracao ja foi testada | PENDENTE |
-| Data do ultimo backup | `2026-08-01` |
+| Data do ultimo backup | `2026-08-02` |
 | Modelo Gemini configurado | OK `gemini-3.5-flash` |
 | escapeHtml presente no compilador | OK |
 | escapeAttr presente (safeUrl depende dela) | OK |
@@ -282,6 +282,35 @@ Artefactos de teste (2 landings, 8 fotos, 2 entradas em `clientes.json`) removid
 - Workflow publicado (`n8n publish:workflow`) e n8n reiniciado. Webhook verificado (`HTTP 500` em payload vazio).
 - Landing do Hotel regenerada com sucesso a partir de `hotel_payload.json`.
 - Link publicado: `https://prisma.binderstudios.com/hotel-msb2ahsuyy2acgiq9l80.html`
+
+### Sessao 2026-08-02 (cont.) -- P1/P2/P3: redimensionamento real de fotos (Performance 61 -> 87)
+
+**Causa raiz confirmada no disco antes de qualquer alteracao:** o operador reportou queda de Performance (70-78 -> 61) apos o sistema adaptativo (I1/I2) escolher `cinematic`/`full-bleed` para um conjunto de fotos `HERO_OK`. Investigacao no servidor confirmou fotos reais em `/var/www/prisma-builds/` com 5331x3554, 3941x6000, 6529x4353 e 4608x3072 px (varios MB cada) servidas em bruto -- `buildSrcsetAttr` no `Compilador Editorial` so tinha um ramo para `images.unsplash.com`; como B3 (`Prepara Payload Diretor`) reescreve **todas** as fotos para o dominio proprio antes do Compilador correr, esse ramo nunca disparava para fotos reais de cliente -- `srcset` saia sempre vazio (`''`) e o `<img src>` apontava sempre para o ficheiro original em bruto, em qualquer tamanho de ecra.
+
+**Ferramenta escolhida (P1/P2):** cron no host, nao chamada sincrona do n8n -- o Code node continua sem `require()`, sem `fs`, sem no Execute Command (mesmas restricoes documentadas no I1 e no `expire-cleanup.py`). `infra/resize-photos.py` (novo, Pillow instalado via `apt install python3-pil`, ja traz suporte WebP via `libwebp7`) corre a cada minuto via crontab, sequencial (nunca em paralelo -- droplet de 1 vCPU/961MB), com lock por `flock` para nunca sobrepor corridas:
+- **P2** -- qualquer foto com o maior lado > 2560px e redimensionada **in-place**, no mesmo nome de ficheiro (nunca guardamos mais do que 2560px como "original").
+- **P1** -- gera `{stem}-{largura}.webp` (qualidade 80) + `{stem}-{largura}.jpg` (fallback, qualidade 82) para cada largura de `[1920, 1280, 1200, 800, 400]` menor que a foto (apos P2) -- nunca faz upscale. Usa `Image.draft()` do Pillow em JPEGs grandes (decodifica ja a escala reduzida via libjpeg em vez de decodificar em bruto e so depois encolher) para poupar CPU/memoria exatamente nos ficheiros que motivaram o problema.
+- Idempotente via marcador `{stem}.resized`; falhas (ficheiros corrompidos de sessoes de teste antigas) marcam `{stem}.resize_failed` para nao ficarem a ser retentados a cada minuto para sempre (achado durante o teste: 3 landings antigas tinham JPEGs truncados que spammavam `/var/log/prisma-resize.log` a cada corrida ate este marcador ser adicionado).
+- **Race condition aceite conscientemente:** a geracao e assincrona (ate 60s de atraso apos o download); no pior caso, um visitante que abra a preview no primeiro minuto ve o ficheiro "original" (ja limitado a 2560px pelo P2, nunca o bruto de 6000px+) em vez das variantes WebP mais pequenas. Nao implementado socket-activation/chamada sincrona por decisao deliberada -- trafego atual e de testes do proprio operador, nao clientes reais (ver AGENT.md, "nao construir infraestrutura para clientes que ainda nao existem"); revisitar se o volume real justificar.
+
+**Compilador Editorial (`buildSrcsetAttr` + novo `ownFallbackSrc`):** mantido o ramo Unsplash (CDN externo, resize por querystring, sem custo local) e adicionado um ramo para `https://prisma.binderstudios.com/...` que espelha exatamente os mesmos limites do `resize-photos.py` (`OWN_SAFE_CAP_PX=2560`, `OWN_CANDIDATE_WIDTHS=[1920,1280,1200,800,400]`), usando a largura original ja medida em `fotos_qualidade` (I1) para nunca listar no HTML um candidato de srcset maior que a propria foto. `src`/`og:image`/`favicon` deixam de apontar para o ficheiro em bruto -- usam `ownFallbackSrc` (variante JPEG ~1200px, ou a maior disponivel). O lightbox (`data-src="{{src}}"`) beneficia automaticamente da mesma correcao, sem alteracao propria.
+
+**Testado e verificado no servidor real (nao simulado):**
+- `python3 -c "from PIL import Image..."` confirmou Pillow 10.2.0 com suporte WebP antes de qualquer deploy.
+- Corrida manual do script contra `/var/www/prisma-builds/` real (dezenas de landings de teste ja existentes do operador) confirmou os pares de dimensoes exatos reportados (6529x4353, 3941x6000, etc.) e capou-os corretamente para <=2560px (`Image.open(...).size` pos-execucao confirmado por landing).
+- Submissao real via `POST https://prisma.binderstudios.com/webhook/imovel-landing` (payload com 7 fotos Unsplash em resolucao original, sem `?w=`, 3000-5760px de largura) apos o deploy do `Compilador Editorial` -- landing `hotel-perf-teste-depois-mscdnkx9argh94gro5s7.html` gerada; **sem qualquer intervencao manual**, o cron do minuto seguinte gerou as 10 variantes por foto (5 larguras x 2 formatos) e capou os 7 originais para <=2560px automaticamente.
+- HTML publicado confirmado por `grep`: `srcset` real com 6 candidatos por foto (5 `.webp` + o original `.jpg` capado como maior candidato), `src`/`og:image`/favicon a apontar para a variante `-1200.jpg`, nunca para o ficheiro em bruto.
+- `curl -I` a 3 URLs de variantes confirma `HTTP 200`, `Content-Type: image/webp` / `image/jpeg` corretos.
+
+**P3 -- Lighthouse mobile (Chrome headless local, `scratch/run_lh_after.js`, mesmo harness/config do teste da Fase 7):**
+| | Performance |
+|---|---|
+| **Antes** (reportado pelo operador, mesma landing `msb5adxsgdh0k6jfagp2.html` que o `scratch/run_lh.js` ja tinha fixo como alvo -- dimensoes de foto confirmadas identicas no disco antes de qualquer alteracao) | **61** |
+| **Depois** (medido nesta sessao, landing nova `hotel-perf-teste-depois-mscdnkx9argh94gro5s7.html`, mesmo tipo de fotos em bruto 3000-5760px, gerada **depois** do deploy do fix) | **87** |
+
+`total-byte-weight` da landing "depois": 527 KiB. Nota de rigor: o "antes" e o numero que o operador reportou (nao remedido nesta sessao) -- os ficheiros de `msb5adxsgdh0k6jfagp2` ja tinham sido capados pelo P2 no momento em que eu teria podido remedir (a corrida manual de validacao do script correu antes de eu perceber que essa era a landing exata do relato), por isso um "antes" limpo nessa URL especifica deixou de ser possivel sem reverter o deploy. Confirmei em troca, por medicao direta no disco, que as dimensoes das fotos batiam exatamente certo com o relato do operador antes de as capar -- o suficiente para confirmar a causa raiz, mas o numero 61 em si e citado, nao remedido.
+
+**Nao commitado ainda o estado do servidor em si** (P1/P2 sao scripts+crontab no host, fora do repo por natureza -- `infra/resize-photos.py` e que fica versionado). `n8n/imovel-landing-wf.json` (Compilador Editorial) alterado e deployado. Artefactos de teste (`hotel-perf-teste-depois-*`, 7 fotos + variantes) deixados no servidor deliberadamente -- landing e `estado: preview`, expira e e apagada pelo `expire-cleanup.py` (cron horario) dentro de 24h, mesmo ciclo de vida desenhado do produto; nao apagado a mao para o operador poder confirmar o link.
 
 ---
 
