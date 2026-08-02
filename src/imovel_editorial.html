@@ -487,17 +487,26 @@
   /* ── Preview banner countdown ── */
   var banner = document.getElementById('preview-banner');
   if(banner) {
-    var expires = new Date(banner.getAttribute('data-expires')).getTime();
+    var rawExp = banner.getAttribute('data-expires');
+    var expires = 0;
+    if(rawExp) {
+      expires = Date.parse(rawExp);
+      if(isNaN(expires)) expires = new Date(rawExp).getTime();
+    }
+    if(!expires || isNaN(expires)) {
+      expires = Date.now() + 24 * 3600 * 1000;
+    }
     var countdownEl = document.getElementById('preview-countdown');
-    if(expires && !isNaN(expires)) {
+    if(countdownEl) {
+      var timer;
       var tick = function() {
         var diff = expires - Date.now();
-        if(diff <= 0) { countdownEl.textContent = 'expirado'; clearInterval(timer); return; }
+        if(diff <= 0) { countdownEl.textContent = 'expirado'; if(timer) clearInterval(timer); return; }
         var h = Math.floor(diff/3600000), m = Math.floor((diff%3600000)/60000), s = Math.floor((diff%60000)/1000);
         countdownEl.textContent = String(h).padStart(2,'0')+':'+String(m).padStart(2,'0')+':'+String(s).padStart(2,'0');
       };
       tick();
-      var timer = setInterval(tick, 1000);
+      timer = setInterval(tick, 1000);
     }
   }
 
@@ -614,9 +623,9 @@
     var priceEl = document.querySelector('.price-hero');
     if(!priceEl || reduceMotion) return;
     var original = priceEl.textContent.trim();
-    var m = original.match(/^([\.\d]+)([\.\s\S]*)$/);
+    var m = original.match(/^([\.\d\s]+)([\.\s\S]*)$/);
     if(!m) return;
-    var numRaw = m[1].replace(/\./g, '');
+    var numRaw = m[1].replace(/[\.\s]/g, '');
     var num = parseInt(numRaw, 10);
     if(isNaN(num) || num < 1000) return;
     var tail = m[2];

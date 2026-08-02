@@ -1,16 +1,16 @@
 ﻿{
-    "commit":  "05f368b",
-    "server":  "161.35.19.139",
+    "commit":  "6933147",
+    "server":  "prisma.binderstudios.com",
     "checks":  {
                    "ssh_no_password":  "OK",
                    "ufw_active":  "OK",
                    "port_5678_closed":  "OK",
-                   "ssl":  "PENDENTE",
+                   "ssl":  "OK",
                    "backup_cron":  "OK",
                    "backup_local":  "OK",
                    "backup_offsite":  "OK",
                    "restore_tested":  "PENDENTE",
-                   "backup_date":  "`2026-07-29`",
+                   "backup_date":  "`2026-08-01`",
                    "model":  "OK `gemini-3.5-flash`",
                    "escape_html":  "OK",
                    "escape_attr":  "OK",
@@ -22,6 +22,6 @@
                    "wf_in_git":  "OK"
                },
     "fails":  0,
-    "verified_at":  "2026-07-29T09:41:40+01:00",
-    "warns":  5
+    "verified_at":  "2026-08-02T01:30:14+01:00",
+    "warns":  4
 }

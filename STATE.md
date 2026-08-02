@@ -12,21 +12,21 @@
 ## [AUTO] Verdade de terreno
 
 > Gerado por `verify.ps1` â€” **nao editar a mao**.
-> **Verificado em:** 2026-07-29T09:41:40+01:00 | **Servidor:** `161.35.19.139` | **Commit:** `05f368b`
+> **Verificado em:** 2026-08-02T01:30:14+01:00 | **Servidor:** `prisma.binderstudios.com` | **Commit:** `6933147`
 
-Sem falhas criticas. 5 pendencia(s) conhecida(s).
+Sem falhas criticas. 4 pendencia(s) conhecida(s).
 
 | Item | Estado |
 |---|---|
 | Login SSH por password desativado | OK |
 | Firewall UFW ativo | OK |
 | Porta 5678 fechada ao exterior | OK |
-| SSL/HTTPS (bloqueado: precisa de dominio) | PENDENTE |
+| SSL/HTTPS (bloqueado: precisa de dominio) | OK |
 | Cron de backup configurado | OK |
 | Backup cifrado existe no servidor | OK |
 | Backup replicado FORA do servidor | OK |
 | Restauracao ja foi testada | PENDENTE |
-| Data do ultimo backup | `2026-07-29` |
+| Data do ultimo backup | `2026-08-01` |
 | Modelo Gemini configurado | OK `gemini-3.5-flash` |
 | escapeHtml presente no compilador | OK |
 | escapeAttr presente (safeUrl depende dela) | OK |
@@ -228,9 +228,64 @@ Achado da sessao anterior confirmado e corrigido, com aprovacao do operador (des
 
 Artefactos de teste (2 landings, 8 fotos, 2 entradas em `clientes.json`) removidos do servidor no fim; o cliente fixture pre-existente `123456789` ("Joao Teste") ficou intacto.
 
+### Sessao 2026-07-31 (cont.) -- primeira submissao REAL do Tally + regressao propria (EACCES) + P1/P2/P3
+
+**Primeira submissao real do operador via Tally (confirmada por nginx: IP `34.96.41.186`, User-Agent `Tally Webhooks`, nao um teste meu).** 30 campos recebidos. `Prepara Payload Diretor` leu corretamente TODOS os campos bloqueantes (`imobiliaria="IBISSON"`, `titulo="HOTEL"`, `preco=1000000`, `tipologia="T 10"`, `localizacao="CASTELO BRANCO "`, os 3 destaques, `corretor_whatsapp`, 7 fotos, `nif="123456789"` real) -- **o M1 esta provado com dados reais**, sem qualquer ajuste necessario.
+
+**A execucao falhou -- causa raiz: regressao propria, nao um bug do pipeline.** `Escreve Clientes` (no `imovel-landing-wf`) falhou com `EACCES: permission denied` a escrever `/home/node/.n8n-files/data/clientes.json`. Causa: um `docker cp` meu, numa sessao anterior desta mesma conversa, para repor `clientes.json` limpo, correu como root a partir da sessao SSH e deixou o ficheiro com dono `root:root` dentro de um diretorio `drwx------` (0700) pertencente a `node:node` -- o processo n8n (utilizador `node`) deixou de conseguir reescrever esse ficheiro. `Prepara Payload Diretor` e `Porteiro` correram e tiveram sucesso (cliente `123456789` reconhecido como existente -- coincidia com o fixture "Joao Teste", `publicadas=3/5`, nao bloqueou); so a escrita final falhou. Como resultado: nenhuma foto foi descarregada para disco (esse passo corre num no posterior, "Grava Fotos Locais", que nunca executou), nenhum HTML/`state.json` foi gerado, nenhum `direction_sheet` foi produzido (Gemini nunca chamado) -- a execucao para inteiramente ao primeiro erro, mesmo com o ramo Diretor de Arte/Compilador ainda por correr.
+
+**P1 -- permissoes corrigidas e verificadas em toda a arvore, nao so no ficheiro que falhou.** Auditoria completa por `find -not -user node` revelou MAIS ficheiros com dono errado, todos de sessoes anteriores: `builds/privacidade.html`, `builds/prisma_e2e_test.state.json`, `builds/_test-img-{0,1,2,3}.jpg`, `builds/_expired_log.jsonl` (todos `root:root`, mas o diretorio `builds/` e `0755` -- so bloqueava escrita, nao leitura) e os 4 templates HTML em `templates/` (tambem `root:root`). `_screenshots/` tem ficheiros de outro uid (`10042:999`) mas o diretorio e `0777` -- nao bloqueia, nao mexido. Corrigido tudo com `docker exec -u root <container> chown node:node <caminho>` (o `docker exec` sem `-u root` corre como `node` por omissao neste container -- confirmado com `whoami`/`id` -- por isso o primeiro `chown` sem `-u root` falhou com "Operation not permitted"). Verificado com `ls -la` (nenhum dono errado a sobrar em `data/`/`templates/`, so `_screenshots/` que ja e 0777) e com um teste de escrita REAL como `-u node`: ficheiro novo criado/apagado em `data/`, e o proprio `clientes.json` reescrito e comparado byte a byte (`diff` limpo). Licao registada no `AGENT.md` (secção NUNCA): sempre `chown node:node` a seguir a qualquer `docker cp` para dentro do container.
+
+**P2 -- UUIDs de campos de escolha traduzidos para texto.** `getValue` (em `Prepara Payload Diretor`) so tratava `FILE_UPLOAD` de forma especial; para `CHECKBOXES`/outros campos de escolha devolvia os UUIDs crus de `value`, ignorando a tabela `options[]` que o Tally tambem envia. Corrigido de forma generica (nao especifica a "Extras"): se `f.options` existe, mapeia cada ID (array ou escalar) para o `text` correspondente, com fallback para o ID em bruto se nao encontrar correspondencia (nunca inventa, nunca descarta). Testado contra o payload REAL capturado desta sessao (nao simulado): `extras` resolve exatamente para `["Piscina","Garagem","Jardim","Terraço","Painéis Solares","Condomínio Fechado","Poço"]`, batendo certo com os `true`/`false` dos campos `"Extras (X)"` individuais do mesmo payload.
+
+**P3 -- fixture a colidir, renomeado.** O NIF real do operador (`123456789`) coincidia com o fixture de testes "Joao Teste" (3 paginas publicadas) de uma sessao anterior. Renomeada a chave para `999999999` em `clientes.json` (conteudo do cliente mantido, so a chave muda) -- o operador sera tratado como cliente novo na proxima submissao. Escrito de volta com `docker cp` + `chown node:node` imediato (aplicando already a nova regra do `AGENT.md`).
+
+**Deploy de P2 confirmado:** `scp` -> `docker cp` -> `import:workflow` -> `restart` -> `update:workflow --active=true` -> `restart`; reexportacao do servidor confirma `active: true` e a logica `textoPorId` presente no codigo real. `curl -d '{}'` pos-deploy -> `HTTP 500` (rota ativa, fail-loud intacto).
+
+**Nao commitado ainda** (P1 e alteracao direta no servidor, sem ficheiro no repo; P2 esta em `n8n/imovel-landing-wf.json`; P3 e so dados no servidor, sem ficheiro no repo) -- a aguardar instrucao explicita.
+
+### Sessao 2026-08-01 -- I1/I2/I4 (pipeline de imagem adaptativo) + I3/I5 (relatorio)
+
+**Contexto:** o operador rejeitou validacao bloqueante por resolucao de foto -- fricao mata adocao. Pedido: aceitar sempre qualquer foto e adaptar o layout em vez de rejeitar.
+
+**I3 -- viabilidade do upscale local (Real-ESRGAN) reportada ANTES de qualquer implementacao, como pedido.** Servidor real (`free -h`/`docker stats` durante execucao normal): 961 MiB RAM total, so 122 MiB livres / 374 MiB "available", 1 vCPU, swap ja com 186 MiB em uso de 2 GiB. Container n8n sozinho ja consome 254 MiB. Um upscaler CPU-only (Real-ESRGAN ncnn, sem GPU disponivel no droplet) tipicamente precisa de varias centenas de MB por imagem durante a inferencia e demora dezenas de segundos por foto -- correr isto a par do n8n neste droplet arrisca OOM-kill do proprio processo n8n a meio de uma execucao (o mesmo tipo de falha ja visto com o `docker cp` root/P1). **Conclusao: upscale local NAO e viavel no droplet atual sem upgrade de RAM.** Alternativa recomendada: API externa (Replicate, modelo Real-ESRGAN hospedado) a cerca de $0.002-0.005 por imagem -- para uma landing tipica de 4-10 fotos isso fica por $0.01-$0.05, sem risco para a estabilidade do droplet. **Nao implementado nesta sessao** (decisao do operador pendente sobre se quer contratar a API externa); I1/I2/I4 nao dependem disto.
+
+**I1 -- medicao e classificacao de fotos, sem dependencias externas.** O sandbox do Code node do n8n nao permite `require()` de modulos nao nativos (confirmado: sem `NODE_FUNCTION_ALLOW_EXTERNAL` no `docker-compose.yml`), por isso a medicao de dimensoes e feita por parsing manual de cabecalho (JPEG/PNG/WebP/GIF), no mesmo estilo ja usado por `isLowResImage` (deteccao de logo fraco). Novas funcoes `medirImagem`/`classificaFoto` em `Prepara Payload Diretor`, aplicadas no loop de download B3 (a mesma foto so e descarregada uma vez -- a medicao usa o buffer ja em memoria, sem pedido HTTP extra). Classes por LARGURA: `HERO_OK` >=1600px, `MEDIA` 800-1599px, `THUMB` <800px; cabecalho nao reconhecido -> `DESCONHECIDA` (tratada como MEDIA a jusante, nunca bloqueia nem rejeita a foto). Resultado (`fotos_qualidade: [{url, w, h, classe}]`) propagado sem alteracao por `Monta Prompt Diretor` -> `Parseia Diretor e Monta Copywriter` -> `Compilador Editorial`, e escrito em `stateJson.fotos_qualidade` (auditoria).
+
+**I2 -- layout adaptativo.** Regras deterministicas no `Compilador Editorial` (nao delegadas ao LLM, por serem absolutas): a foto de MAIOR largura conhecida vai sempre para o hero (`heroIndex`), independentemente da posicao em que foi submetida; os cards de destaque nunca usam uma foto `THUMB` quando existe alternativa nao-THUMB (mesmo que isso signifique repetir a mesma foto MEDIA em varios destaques) -- so cai em THUMB se literalmente todas as fotos restantes forem THUMB. Sinais objetivos (contagem de HERO_OK/MEDIA/THUMB) passados ao prompt do Diretor de Arte (`Monta Prompt Diretor`), com regra nova (11): quando ZERO fotos sao HERO_OK, o Diretor e instruido a evitar o arquetipo "cinematic" e o tratamento "full-bleed" (uma foto fraca esticada a ecra inteiro expoe a falta de qualidade). **Nao implementado nesta sessao: um arquetipo "tipografico" dedicado (headline massivo sobre fundo solido, fotos so em thumbnails) para o caso extremo de nenhuma foto boa** -- isso exigiria um terceiro template completo (hoje so existem `imovel_editorial.html`/`imovel_atlantico.html`, selecionados por `colecao`); ficou como sinal de prompt (evitar cinematic/full-bleed) em vez de um layout dedicado. Registado aqui para nao se perder, a decidir em sessao futura se vale o investimento.
+
+**I4 -- tratamento de imagem.** Scrim: ja existia no `imovel_atlantico.html` (`.panel-veil`, gradiente escuro) para texto sobre foto; nada a fazer ali. Crop: `object-fit:cover` ja usado em todos os `<img>` relevantes -- nunca estica, ja cumpria o pedido de nao esticar. Novo: grao + vinheta subtis (SVG `feTurbulence` + radial-gradient, classe `.foto-realce` + modificador `.foto-thumb`/`.foto-media`) aplicados por foto quando classificada MEDIA/THUMB, para mascarar pixelizacao em vez de a expor a ecra inteiro; e duotone (preto-e-branco consistente via `filter:grayscale` + overlay `var(--accent)` em `mix-blend-mode:color`) escolhido pelo Diretor de Arte (`identity.tratamento_fotos`, novo campo no schema/brief, `natural`|`duotone`) quando o conjunto de fotos e heterogeneo em qualidade, ligado por `data-fotos="{{identity.tratamento_fotos}}"` no `<body>` (mesmo padrao ja usado por `data-spacing`/`data-image`/`data-ornament`). Cuidado tecnico registado: no `imovel_atlantico.html`, `.panel-media` e `.panel-veil` ja sao `position:absolute;inset:0` -- a classe `foto-realce` NUNCA e aplicada a `.panel-media` (so a `.panel-veil`), para nao sobrepor essa posicao absoluta e partir o preenchimento do painel de ecra total.
+
+**I5 -- texto de ajuda sugerido para o campo de fotos no Tally (nao implementado em codigo -- e um campo de configuracao do formulario, editado manualmente pelo operador no Tally.so):** "Envie as fotografias na maxima resolucao que tiver. Se as tirar com o telemovel na visita, melhor ainda."
+
+**Testado localmente** antes do deploy: `test_i1_medir.js` (10 casos de fronteira de largura -- 1600/1599/800/799px, PNG/JPEG/WebP/buffer invalido -- todos PASS); `test_i1i2i4_full_chain.js` (cadeia completa Prepara Payload -> Monta Prompt -> Parseia Diretor -> Compilador, Gemini stubado, 4 fotos sinteticas de dimensoes conhecidas incluindo uma HERO_OK que NAO e a foto 0): confirma hero = foto de maior resolucao independente da ordem submetida, THUMB nunca usada em destaque havendo alternativa, classes CSS corretas em editorial E atlantico, `panel-media` nunca recebe `foto-realce`, `data-fotos` refletido no HTML, SWEEP final (sem placeholders, exatamente 1 `<h1>`) passa em todos os cenarios incluindo "todas as fotos THUMB" (nunca bloqueia). Todos os testes PASS.
+
+**Deploy confirmado:** `scp` -> `docker cp` (workflow + os 2 templates) -> `chown node:node` imediato (regra do AGENT.md aplicada) -> `import:workflow` -> `restart` -> `update:workflow --active=true` -> `restart`. Reexportacao do servidor confirma `active: true` e presenca de `medirImagem`/`classificaFoto`/`heroIndex`/`classeCssDaFoto`/`tratamento_fotos` no codigo real (nao so no repo local). `ls -la` no container confirma os 2 templates com `foto-realce` presente e donos `node:node`. `curl -X POST https://prisma.binderstudios.com/webhook/imovel-landing -d '{}'` -> `HTTP 500` (rota ativa, fail-loud intacto, nao 404).
+
+### Sessao 2026-08-02 -- Verificacao de templates container + Q1-Q4 (Preco, Logo Tally, Countdown, Ficha) + Hotel landing regenerada
+
+**1. Verificacao de Templates no Container:**
+- `imovel_editorial.html` e `imovel_atlantico.html` verificados dentro do container `prisma-n8n_n8n_1`: `ease-out-expo` presente (count=3 em ambos). Dono `node:node`.
+- Asset `/assets/lenis.min.js` (13020 bytes, ~13KB) verificado no servidor em `/var/www/prisma-builds/assets/lenis.min.js` e responde HTTP 200 OK por HTTPS (`https://prisma.binderstudios.com/assets/lenis.min.js`).
+
+**2. Upscale:**
+- Decisao registada: sem contratacao de API externa agora. I2 (layout adaptativo) resolve o essencial. Upscale mantido como otimizacao futura para fotos MEDIA (800->1600px).
+
+**3. Correcoes Q1-Q4:**
+- **Q1 (Preco sem €):** `formatPreco` no `Compilador Editorial` melhorado para garantir que qualquer preco (numérico limpo, formatado ou raw) recebe separadores de milhar em espacos e simbolo `€` no final (`1 000 000 €`), preservando "Sob consulta".
+- **Q2 (Logo Tally):** Ampliado `SYNONYMS.logo` em `Prepara Payload Diretor` (incluindo `logo`, `logotipo da agencia`, `logo da empresa`, etc.) para capturar qualquer variante de label do Tally real. Adicionado header `User-Agent: Mozilla/5.0` no download de logotipos.
+- **Q3 (Countdown):** Parsing de `data-expires` no JS do preview banner (`imovel_editorial.html` e `imovel_atlantico.html`) atualizado com `Date.parse` + fallback para garantir funcionamento cross-browser (incluindo iOS Safari).
+- **Q4 (Unidades na Ficha):** `formatArea` e `fichaCampos` normalizados no `Compilador Editorial` para formatar areas com `m²` limpo sem duplicacoes.
+
+**4. Deploy & Regeneracao:**
+- Ficheiros `imovel_editorial.html`, `imovel_atlantico.html` e `n8n/imovel-landing-wf.json` sincronizados e deployados para o container Docker `prisma-n8n_n8n_1` com `chown node:node`.
+- Workflow publicado (`n8n publish:workflow`) e n8n reiniciado. Webhook verificado (`HTTP 500` em payload vazio).
+- Landing do Hotel regenerada com sucesso a partir de `hotel_payload.json`.
+- Link publicado: `https://prisma.binderstudios.com/hotel-msb2ahsuyy2acgiq9l80.html`
+
 ---
 
-## Protocolo de fim de sess�o (obrigat�rio)
+## Protocolo de fim de sesso (obrigatrio)
 
 ```bash
 ./verify.sh                    # reescreve o bloco [AUTO]
