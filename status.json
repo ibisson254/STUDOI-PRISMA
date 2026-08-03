@@ -1,5 +1,5 @@
 ﻿{
-    "commit":  "4b458c9",
+    "commit":  "0057990",
     "server":  "161.35.19.139",
     "checks":  {
                    "ssh_no_password":  "OK",
@@ -10,7 +10,7 @@
                    "backup_local":  "OK",
                    "backup_offsite":  "OK",
                    "restore_tested":  "PENDENTE",
-                   "backup_date":  "`2026-08-02`",
+                   "backup_date":  "`2026-08-03`",
                    "model":  "OK `gemini-3.5-flash`",
                    "escape_html":  "OK",
                    "escape_attr":  "OK",
@@ -22,6 +22,6 @@
                    "wf_in_git":  "OK"
                },
     "fails":  0,
-    "verified_at":  "2026-08-02T23:40:18+01:00",
+    "verified_at":  "2026-08-03T14:50:54+01:00",
     "warns":  4
 }

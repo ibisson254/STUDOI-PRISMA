@@ -38,7 +38,7 @@
     },
     {
       "parameters": {
-        "jsCode": "\nconst htmlBuffer = await this.helpers.getBinaryDataBuffer(0, 'data');\nconst raw = htmlBuffer.toString('utf8');\n\nlet state;\ntry {\n  state = JSON.parse(raw);\n} catch (e) {\n  return [{ json: { shouldExpire: false, skipReason: 'json invalido' } }];\n}\n\nconst stateFileName = $input.item.binary.data.fileName || '';\nconst isExpired = state.estado === 'preview' && state.expires_at && new Date(state.expires_at).getTime() < Date.now();\n\nif (!isExpired) {\n  return [{ json: { shouldExpire: false, landingId: state.landing_id, stateFileName } }];\n}\n\nstate.estado = 'expirado';\n\nfunction escapeHtml(unsafe) {\n  if (!unsafe) return '';\n  return String(unsafe).replace(/&/g, \"&amp;\").replace(/</g, \"&lt;\").replace(/>/g, \"&gt;\").replace(/\"/g, \"&quot;\").replace(/'/g, \"&#039;\");\n}\nconst corretorNome = escapeHtml(state.cliente?.corretor?.nome || '');\nconst corretorWa = String(state.cliente?.corretor?.whatsapp || '').replace(/\\D/g, '');\nconst titulo = escapeHtml(state.imovel?.titulo || 'Este imóvel');\nconst waLink = 'https://wa.me/' + corretorWa + '?text=' + encodeURIComponent('Olá, a pré-visualização de \"' + (state.imovel?.titulo || '') + '\" expirou. Gostava de a reativar.');\n\nconst expiredHtml = `<!DOCTYPE html>\n<html lang=\"pt\">\n<head>\n<meta charset=\"UTF-8\">\n<meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n<title>Pré-visualização expirada</title>\n<meta name=\"robots\" content=\"noindex\">\n<style>\n  body{font-family:system-ui,sans-serif;background:#0f172a;color:#f8fafc;display:flex;min-height:100vh;align-items:center;justify-content:center;margin:0;padding:1.5rem;text-align:center}\n  .box{max-width:32rem}\n  h1{font-size:1.5rem;margin-bottom:.75rem}\n  p{color:#94a3b8;margin-bottom:1.5rem;line-height:1.6}\n  a{display:inline-flex;align-items:center;gap:.5rem;padding:.9rem 1.5rem;border-radius:.5rem;background:#25D366;color:#062611;font-weight:600;text-decoration:none}\n</style>\n</head>\n<body>\n  <div class=\"box\">\n    <h1>A pré-visualização de \"${titulo}\" expirou</h1>\n    <p>Esta landing estava em modo de pré-visualização e o prazo terminou sem confirmação de publicação. Contacte ${corretorNome || 'o corretor'} para a reativar.</p>\n    <a href=\"${waLink}\">Reativar via WhatsApp</a>\n  </div>\n</body>\n</html>`;\n\nconst htmlFileName = stateFileName.replace('.state.json', '.html');\nconst stateFileNameOut = stateFileName;\n\nconst outHtmlBinary = await this.helpers.prepareBinaryData(Buffer.from(expiredHtml, 'utf8'), htmlFileName.split('/').pop(), 'text/html');\nconst outStateBinary = await this.helpers.prepareBinaryData(Buffer.from(JSON.stringify(state, null, 2), 'utf8'), stateFileNameOut.split('/').pop(), 'application/json');\n\nreturn [{\n  json: { shouldExpire: true, landingId: state.landing_id, htmlPath: '/home/node/.n8n-files/builds/' + htmlFileName.split('/').pop(), statePath: '/home/node/.n8n-files/builds/' + stateFileNameOut.split('/').pop() },\n  binary: { data: outHtmlBinary, state: outStateBinary }\n}];\n"
+        "jsCode": "\nconst htmlBuffer = await this.helpers.getBinaryDataBuffer(0, 'data');\nconst raw = htmlBuffer.toString('utf8');\n\nlet state;\ntry {\n  state = JSON.parse(raw);\n} catch (e) {\n  return [{ json: { shouldExpire: false, shouldRemind: false, skipReason: 'json invalido' } }];\n}\n\nconst stateFileName = $input.item.binary.data.fileName || '';\nconst now = Date.now();\nconst expiresAtMs = state.expires_at ? new Date(state.expires_at).getTime() : NaN;\nconst isPreviewComExpiracao = state.estado === 'preview' && !isNaN(expiresAtMs);\n\n// N2 -- lembrete 3h antes de expirar. Janela [2h30, 3h30] em vez de \"== 3h\"\n// porque o cron corre de hora a hora e nunca vai acertar o minuto exato de\n// qualquer expires_at. lembrete_enviado (ausente = false = elegivel) impede\n// reenvio na proxima passagem depois de um envio bem sucedido -- ver\n// \"Marca Lembrete Enviado\", que so grava a flag quando o Gmail confirma o\n// envio (id presente na resposta), para uma falha de envio poder tentar de\n// novo na proxima hora em vez de ficar silenciosamente por enviar.\nconst MS_HORA = 3600 * 1000;\nconst msParaExpirar = expiresAtMs - now;\nconst shouldRemind = isPreviewComExpiracao && !state.lembrete_enviado &&\n  msParaExpirar > 2.5 * MS_HORA && msParaExpirar <= 3.5 * MS_HORA;\n\nconst isExpired = isPreviewComExpiracao && expiresAtMs < now;\n\nif (!isExpired) {\n  return [{ json: { shouldExpire: false, shouldRemind, landingId: state.landing_id, stateFileName, state } }];\n}\n\nstate.estado = 'expirado';\n\nfunction escapeHtml(unsafe) {\n  if (!unsafe) return '';\n  return String(unsafe).replace(/&/g, \"&amp;\").replace(/</g, \"&lt;\").replace(/>/g, \"&gt;\").replace(/\"/g, \"&quot;\").replace(/'/g, \"&#039;\");\n}\nconst corretorNome = escapeHtml(state.cliente?.corretor?.nome || '');\nconst corretorWa = String(state.cliente?.corretor?.whatsapp || '').replace(/\\D/g, '');\nconst titulo = escapeHtml(state.imovel?.titulo || 'Este imóvel');\nconst waLink = 'https://wa.me/' + corretorWa + '?text=' + encodeURIComponent('Olá, a pré-visualização de \"' + (state.imovel?.titulo || '') + '\" expirou. Gostava de a reativar.');\n\nconst expiredHtml = `<!DOCTYPE html>\n<html lang=\"pt\">\n<head>\n<meta charset=\"UTF-8\">\n<meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n<title>Pré-visualização expirada</title>\n<meta name=\"robots\" content=\"noindex\">\n<style>\n  body{font-family:system-ui,sans-serif;background:#0f172a;color:#f8fafc;display:flex;min-height:100vh;align-items:center;justify-content:center;margin:0;padding:1.5rem;text-align:center}\n  .box{max-width:32rem}\n  h1{font-size:1.5rem;margin-bottom:.75rem}\n  p{color:#94a3b8;margin-bottom:1.5rem;line-height:1.6}\n  a{display:inline-flex;align-items:center;gap:.5rem;padding:.9rem 1.5rem;border-radius:.5rem;background:#25D366;color:#062611;font-weight:600;text-decoration:none}\n</style>\n</head>\n<body>\n  <div class=\"box\">\n    <h1>A pré-visualização de \"${titulo}\" expirou</h1>\n    <p>Esta landing estava em modo de pré-visualização e o prazo terminou sem confirmação de publicação. Contacte ${corretorNome || 'o corretor'} para a reativar.</p>\n    <a href=\"${waLink}\">Reativar via WhatsApp</a>\n  </div>\n</body>\n</html>`;\n\nconst htmlFileName = stateFileName.replace('.state.json', '.html');\nconst stateFileNameOut = stateFileName;\n\nconst outHtmlBinary = await this.helpers.prepareBinaryData(Buffer.from(expiredHtml, 'utf8'), htmlFileName.split('/').pop(), 'text/html');\nconst outStateBinary = await this.helpers.prepareBinaryData(Buffer.from(JSON.stringify(state, null, 2), 'utf8'), stateFileNameOut.split('/').pop(), 'application/json');\n\nreturn [{\n  json: { shouldExpire: true, shouldRemind: false, landingId: state.landing_id, htmlPath: '/home/node/.n8n-files/builds/' + htmlFileName.split('/').pop(), statePath: '/home/node/.n8n-files/builds/' + stateFileNameOut.split('/').pop(), state },\n  binary: { data: outHtmlBinary, state: outStateBinary }\n}];\n"
       },
       "id": "code-check-1",
       "name": "Verifica Expiracao",
@@ -112,6 +112,147 @@
         800,
         400
       ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "leftValue": "={{$json.shouldRemind}}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "if-lembrar-1",
+      "name": "Se Deve Lembrar",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        600,
+        480
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// N2 -- lembrete 3h antes de expirar (alimentado por \"Se Deve Lembrar\",\n// que ja filtrou shouldRemind === true a partir de \"Verifica Expiracao\").\n// ===== PRISMA CONFIG CENTRAL (N5, replicado -- ver nota em imovel-landing-wf.json) =====\nconst PRISMA_BRAND_NAME = 'Prisma';\nconst PRISMA_CONTACT_WHATSAPP = '+351920000000';\nconst PRISMA_OPERATOR_EMAIL = 'ibissonsilva@gmail.com';\nfunction prismaPaymentLink(titulo, imobiliaria, landingId) {\n  return 'https://wa.me/' + PRISMA_CONTACT_WHATSAPP.replace(/\\D/g, '') + '?text=' + encodeURIComponent(\n    'Prisma Studio: quero publicar a landing \"' + titulo + '\" (imobiliária: ' + imobiliaria + ', landing_id: ' + landingId + ').'\n  );\n}\n\nfunction escapeHtml(unsafe) {\n  if (unsafe === undefined || unsafe === null) return '';\n  return String(unsafe).replace(/&/g, \"&amp;\").replace(/</g, \"&lt;\").replace(/>/g, \"&gt;\").replace(/\"/g, \"&quot;\").replace(/'/g, \"&#039;\");\n}\nfunction escapeAttr(unsafe) {\n  if (unsafe === undefined || unsafe === null) return '';\n  return String(unsafe).replace(/\"/g, \"&quot;\").replace(/'/g, \"&#039;\");\n}\n\n// N4 -- template de email (replicado, ver nota em imovel-landing-wf.json).\nfunction buildEmailPrisma({ brandName, preheader, headline, bodyHtml, ctaLabel, ctaUrl }) {\n  const brand = escapeHtml(brandName || PRISMA_BRAND_NAME);\n  const fontStack = `-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif`;\n  const ctaBlock = ctaUrl ? `\n    <table role=\"presentation\" cellpadding=\"0\" cellspacing=\"0\" style=\"margin-top:24px;\">\n      <tr><td style=\"border-radius:6px;background-color:#8c6d4f;\">\n        <a href=\"${escapeAttr(ctaUrl)}\" style=\"display:inline-block;padding:14px 28px;font-size:15px;font-weight:600;color:#ffffff;text-decoration:none;font-family:${fontStack};\">${escapeHtml(ctaLabel || '')}</a>\n      </td></tr>\n    </table>` : '';\n  return `<!DOCTYPE html>\n<html lang=\"pt\">\n<head>\n<meta charset=\"UTF-8\">\n<meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n<title>${brand}</title>\n</head>\n<body style=\"margin:0;padding:0;background-color:#f4f2ef;font-family:${fontStack};\">\n<span style=\"display:none;font-size:1px;color:#f4f2ef;line-height:1px;max-height:0;max-width:0;opacity:0;overflow:hidden;\">${escapeHtml(preheader || '')}</span>\n<table role=\"presentation\" width=\"100%\" cellpadding=\"0\" cellspacing=\"0\" style=\"background-color:#f4f2ef;padding:32px 16px;\"><tr><td align=\"center\">\n<table role=\"presentation\" width=\"600\" cellpadding=\"0\" cellspacing=\"0\" style=\"max-width:600px;width:100%;background-color:#ffffff;border-radius:8px;overflow:hidden;\">\n<tr><td style=\"background-color:#1c2421;padding:24px 32px;\"><span style=\"font-size:20px;font-weight:600;color:#ffffff;letter-spacing:0.02em;font-family:${fontStack};\">${brand}</span></td></tr>\n<tr><td style=\"padding:32px 32px 8px;\">\n<h1 style=\"margin:0 0 16px;font-size:22px;line-height:1.3;color:#1c2421;font-family:${fontStack};\">${escapeHtml(headline || '')}</h1>\n<div style=\"font-size:15px;line-height:1.6;color:#3f3f3f;font-family:${fontStack};\">${bodyHtml}</div>\n${ctaBlock}\n</td></tr>\n<tr><td style=\"padding:20px 32px 28px;background-color:#f1ede6;border-top:1px solid #e5e0d8;\">\n<p style=\"margin:0;font-size:12px;color:#8a8a8a;line-height:1.5;font-family:${fontStack};\">Esta é uma mensagem automática do ${brand}. Pode responder a este email diretamente com alterações ou dúvidas.</p>\n</td></tr>\n</table>\n</td></tr></table>\n</body>\n</html>`;\n}\n\nconst state = $json.state;\nconst imovelRaw = state.imovel || {};\nconst corretor = imovelRaw.corretor || (state.cliente && state.cliente.corretor) || {};\nconst titulo = imovelRaw.titulo || 'O seu imóvel';\nconst imobiliaria = imovelRaw.imobiliaria || (state.cliente && state.cliente.imobiliaria) || '';\nconst landingId = state.landing_id;\nconst canonical = state.url;\n\nconst corretorEmailRaw = String(corretor.email || '').trim();\nconst semEmailCorretor = !corretorEmailRaw;\nconst targetEmail = corretorEmailRaw || PRISMA_OPERATOR_EMAIL;\n\nconst expiresAtDate = new Date(state.expires_at);\nconst expiresDisplay = isNaN(expiresAtDate.getTime()) ? '' : expiresAtDate.toLocaleString('pt-PT', { timeZone: 'Europe/Lisbon', day: '2-digit', month: 'long', hour: '2-digit', minute: '2-digit' });\n\nconst paymentLink = prismaPaymentLink(titulo, imobiliaria, landingId);\n\nconst bodyHtml = `\n<p>Este é um lembrete: a pré-visualização da página do imóvel <strong>${escapeHtml(titulo)}</strong> expira dentro de cerca de 3 horas${expiresDisplay ? ' (' + escapeHtml(expiresDisplay) + ', hora de Lisboa)' : ''}.</p>\n<p style=\"margin:20px 0;\"><a href=\"${escapeAttr(canonical)}\" style=\"color:#8c6d4f;font-weight:600;word-break:break-all;\">${escapeHtml(canonical)}</a></p>\n<p>Se quiser manter esta página online sem interrupção, publique-a agora.</p>\n<p style=\"margin-top:24px;\">Encontrou algo para corrigir? Basta responder a este email a descrever a alteração.</p>\n${semEmailCorretor ? '<p style=\"color:#b91c1c;\"><strong>Nota interna:</strong> este envio foi feito para o email do operador porque o corretor não indicou um email no formulário.</p>' : ''}\n`;\n\nconst html = buildEmailPrisma({\n  brandName: PRISMA_BRAND_NAME,\n  preheader: 'O seu preview expira em cerca de 3 horas.',\n  headline: 'O seu preview expira em 3 horas',\n  bodyHtml,\n  ctaLabel: 'Publicar o meu site',\n  ctaUrl: paymentLink\n});\n\nconst subject = (semEmailCorretor ? '[SEM EMAIL DO CORRETOR] ' : '') + 'O seu preview expira em 3 horas — ' + titulo;\n\nreturn [{ json: { targetEmail, subject, html, landingId } }];\n"
+      },
+      "id": "code-prep-email-lembrete-1",
+      "name": "Prepara Email Lembrete",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        800,
+        480
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "message",
+        "operation": "send",
+        "sendTo": "={{ $json.targetEmail }}",
+        "subject": "={{ $json.subject }}",
+        "emailType": "html",
+        "message": "={{ $json.html }}",
+        "options": {}
+      },
+      "id": "gmail-envia-email-lembrete-1",
+      "name": "Envia Email Lembrete",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2,
+      "position": [
+        1000,
+        480
+      ],
+      "continueOnFail": true,
+      "onError": "continueRegularOutput",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "PyaJ5XLg5uG1wp2m",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// N2 -- so grava lembrete_enviado:true quando o Gmail confirma o envio (id\n// presente na resposta do no anterior). Se o envio falhou, a flag fica por\n// gravar e a proxima passagem horaria do cron tenta reenviar -- nunca marca\n// \"enviado\" sem ter enviado de facto.\nconst src = $('Verifica Expiracao').item.json;\nconst state = src.state;\nconst gmailResp = $input.item.json || {};\nconst sentOk = !!gmailResp.id;\n\nconst baseName = String(src.stateFileName || '').split('/').pop();\nconst statePath = '/home/node/.n8n-files/builds/' + baseName;\n\nif (sentOk) {\n  state.lembrete_enviado = true;\n  state.lembrete_enviado_em = new Date().toISOString();\n}\n\nconst out = Buffer.from(JSON.stringify(state, null, 2), 'utf8');\nreturn [{\n  json: { statePath, lembreteMarcado: sentOk, gmailId: gmailResp.id || null },\n  binary: { state: await this.helpers.prepareBinaryData(out, baseName, 'application/json') }\n}];\n"
+      },
+      "id": "code-marca-lembrete-1",
+      "name": "Marca Lembrete Enviado",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1200,
+        480
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "write",
+        "fileName": "={{$json.statePath}}",
+        "dataPropertyName": "state",
+        "options": {}
+      },
+      "id": "write-lembrete-state-1",
+      "name": "Escreve State Lembrete",
+      "type": "n8n-nodes-base.readWriteFile",
+      "typeVersion": 1,
+      "position": [
+        1400,
+        480
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// N3 -- email de expiracao, disparado no mesmo ramo que despublica a landing\n// (paralelo a \"Sobrescreve HTML Expirado\"/\"Atualiza State para Expirado\" --\n// uma falha no envio nunca bloqueia a despublicacao, que ja aconteceu nos\n// ramos irmaos independentemente deste). Idempotente por construcao: depois\n// desta passagem state.estado deixa de ser 'preview', por isso a condicao\n// isExpired em \"Verifica Expiracao\" nunca volta a ser verdadeira para esta\n// landing -- nao e preciso nenhuma flag extra tipo lembrete_enviado.\n// ===== PRISMA CONFIG CENTRAL (N5, replicado -- ver nota em imovel-landing-wf.json) =====\nconst PRISMA_BRAND_NAME = 'Prisma';\nconst PRISMA_CONTACT_WHATSAPP = '+351920000000';\nconst PRISMA_OPERATOR_EMAIL = 'ibissonsilva@gmail.com';\nfunction prismaReactivateLink(titulo, imobiliaria, landingId) {\n  return 'https://wa.me/' + PRISMA_CONTACT_WHATSAPP.replace(/\\D/g, '') + '?text=' + encodeURIComponent(\n    'Prisma Studio: a pré-visualização de \"' + titulo + '\" expirou e quero reativá-la (imobiliária: ' + imobiliaria + ', landing_id: ' + landingId + ').'\n  );\n}\n\nfunction escapeHtml(unsafe) {\n  if (unsafe === undefined || unsafe === null) return '';\n  return String(unsafe).replace(/&/g, \"&amp;\").replace(/</g, \"&lt;\").replace(/>/g, \"&gt;\").replace(/\"/g, \"&quot;\").replace(/'/g, \"&#039;\");\n}\nfunction escapeAttr(unsafe) {\n  if (unsafe === undefined || unsafe === null) return '';\n  return String(unsafe).replace(/\"/g, \"&quot;\").replace(/'/g, \"&#039;\");\n}\n\n// N4 -- template de email (replicado, ver nota em imovel-landing-wf.json).\nfunction buildEmailPrisma({ brandName, preheader, headline, bodyHtml, ctaLabel, ctaUrl }) {\n  const brand = escapeHtml(brandName || PRISMA_BRAND_NAME);\n  const fontStack = `-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif`;\n  const ctaBlock = ctaUrl ? `\n    <table role=\"presentation\" cellpadding=\"0\" cellspacing=\"0\" style=\"margin-top:24px;\">\n      <tr><td style=\"border-radius:6px;background-color:#8c6d4f;\">\n        <a href=\"${escapeAttr(ctaUrl)}\" style=\"display:inline-block;padding:14px 28px;font-size:15px;font-weight:600;color:#ffffff;text-decoration:none;font-family:${fontStack};\">${escapeHtml(ctaLabel || '')}</a>\n      </td></tr>\n    </table>` : '';\n  return `<!DOCTYPE html>\n<html lang=\"pt\">\n<head>\n<meta charset=\"UTF-8\">\n<meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n<title>${brand}</title>\n</head>\n<body style=\"margin:0;padding:0;background-color:#f4f2ef;font-family:${fontStack};\">\n<span style=\"display:none;font-size:1px;color:#f4f2ef;line-height:1px;max-height:0;max-width:0;opacity:0;overflow:hidden;\">${escapeHtml(preheader || '')}</span>\n<table role=\"presentation\" width=\"100%\" cellpadding=\"0\" cellspacing=\"0\" style=\"background-color:#f4f2ef;padding:32px 16px;\"><tr><td align=\"center\">\n<table role=\"presentation\" width=\"600\" cellpadding=\"0\" cellspacing=\"0\" style=\"max-width:600px;width:100%;background-color:#ffffff;border-radius:8px;overflow:hidden;\">\n<tr><td style=\"background-color:#1c2421;padding:24px 32px;\"><span style=\"font-size:20px;font-weight:600;color:#ffffff;letter-spacing:0.02em;font-family:${fontStack};\">${brand}</span></td></tr>\n<tr><td style=\"padding:32px 32px 8px;\">\n<h1 style=\"margin:0 0 16px;font-size:22px;line-height:1.3;color:#1c2421;font-family:${fontStack};\">${escapeHtml(headline || '')}</h1>\n<div style=\"font-size:15px;line-height:1.6;color:#3f3f3f;font-family:${fontStack};\">${bodyHtml}</div>\n${ctaBlock}\n</td></tr>\n<tr><td style=\"padding:20px 32px 28px;background-color:#f1ede6;border-top:1px solid #e5e0d8;\">\n<p style=\"margin:0;font-size:12px;color:#8a8a8a;line-height:1.5;font-family:${fontStack};\">Esta é uma mensagem automática do ${brand}. Pode responder a este email diretamente com alterações ou dúvidas.</p>\n</td></tr>\n</table>\n</td></tr></table>\n</body>\n</html>`;\n}\n\nconst state = $json.state;\nconst imovelRaw = state.imovel || {};\nconst corretor = imovelRaw.corretor || (state.cliente && state.cliente.corretor) || {};\nconst titulo = imovelRaw.titulo || 'O seu imóvel';\nconst imobiliaria = imovelRaw.imobiliaria || (state.cliente && state.cliente.imobiliaria) || '';\nconst landingId = state.landing_id;\n\nconst corretorEmailRaw = String(corretor.email || '').trim();\nconst semEmailCorretor = !corretorEmailRaw;\nconst targetEmail = corretorEmailRaw || PRISMA_OPERATOR_EMAIL;\n\nconst reactivateLink = prismaReactivateLink(titulo, imobiliaria, landingId);\n\nconst bodyHtml = `\n<p>A pré-visualização da página do imóvel <strong>${escapeHtml(titulo)}</strong> expirou e deixou de estar acessível publicamente.</p>\n<p>Isto acontece automaticamente 24 horas depois da geração, para pré-visualizações que ainda não foram publicadas.</p>\n<p style=\"margin-top:24px;\">Quer reativá-la?</p>\n${semEmailCorretor ? '<p style=\"color:#b91c1c;\"><strong>Nota interna:</strong> este envio foi feito para o email do operador porque o corretor não indicou um email no formulário.</p>' : ''}\n`;\n\nconst html = buildEmailPrisma({\n  brandName: PRISMA_BRAND_NAME,\n  preheader: 'A sua pré-visualização expirou.',\n  headline: 'A sua pré-visualização expirou',\n  bodyHtml,\n  ctaLabel: 'Reativar a minha página',\n  ctaUrl: reactivateLink\n});\n\nconst subject = (semEmailCorretor ? '[SEM EMAIL DO CORRETOR] ' : '') + 'A sua pré-visualização expirou — ' + titulo;\n\nreturn [{ json: { targetEmail, subject, html, landingId } }];\n"
+      },
+      "id": "code-prep-email-expiracao-1",
+      "name": "Prepara Email Expiracao",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        800,
+        620
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "message",
+        "operation": "send",
+        "sendTo": "={{ $json.targetEmail }}",
+        "subject": "={{ $json.subject }}",
+        "emailType": "html",
+        "message": "={{ $json.html }}",
+        "options": {}
+      },
+      "id": "gmail-envia-email-expiracao-1",
+      "name": "Envia Email Expiracao",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2,
+      "position": [
+        1000,
+        620
+      ],
+      "continueOnFail": true,
+      "onError": "continueRegularOutput",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "PyaJ5XLg5uG1wp2m",
+          "name": "Gmail account"
+        }
+      }
     }
   ],
   "connections": {
@@ -144,6 +285,11 @@
             "node": "Se Expirou",
             "type": "main",
             "index": 0
+          },
+          {
+            "node": "Se Deve Lembrar",
+            "type": "main",
+            "index": 0
           }
         ]
       ]
@@ -160,8 +306,78 @@
             "node": "Atualiza State para Expirado",
             "type": "main",
             "index": 0
+          },
+          {
+            "node": "Prepara Email Expiracao",
+            "type": "main",
+            "index": 0
           }
         ]
+      ]
+    },
+    "Se Deve Lembrar": {
+      "main": [
+        [
+          {
+            "node": "Prepara Email Lembrete",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepara Email Lembrete": {
+      "main": [
+        [
+          {
+            "node": "Envia Email Lembrete",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Envia Email Lembrete": {
+      "main": [
+        [
+          {
+            "node": "Marca Lembrete Enviado",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Marca Lembrete Enviado": {
+      "main": [
+        [
+          {
+            "node": "Escreve State Lembrete",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Escreve State Lembrete": {
+      "main": [
+        []
+      ]
+    },
+    "Prepara Email Expiracao": {
+      "main": [
+        [
+          {
+            "node": "Envia Email Expiracao",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Envia Email Expiracao": {
+      "main": [
+        []
       ]
     }
   },

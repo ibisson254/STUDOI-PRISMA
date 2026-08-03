@@ -6,10 +6,10 @@ services:
     ports:
       - "127.0.0.1:5678:5678"
     environment:
-      - WEBHOOK_URL=http://161.35.19.139/
-      - N8N_HOST=161.35.19.139
+      - WEBHOOK_URL=https://prisma.binderstudios.com/
+      - N8N_HOST=prisma.binderstudios.com
       - N8N_PORT=5678
-      - N8N_PROTOCOL=http
+      - N8N_PROTOCOL=https
       - GENERIC_TIMEZONE=Europe/Lisbon
     volumes: 
       - n8n_data:/home/node/.n8n
