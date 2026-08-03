@@ -343,6 +343,24 @@ Artefactos de teste (2 landings, 8 fotos, 2 entradas em `clientes.json`) removid
 - `n8n update:workflow` esta deprecado a favor de `publish:workflow` -- funciona, mas gera aviso a cada deploy; considerar migrar o procedimento de deploy documentado no `AGENT.md`.
 - Fase 1 (conformidade legal, AMI/Classe Energetica obrigatorios) continua adiada por decisao do operador.
 
+### Sessao 2026-08-03 (cont.) -- correcoes pos-verificacao da Fase 2.4 (C1/C2/C3)
+
+**C1 -- link da landing nao clicavel em mobile (emails 1 e 2).** O URL canonico ja estava tecnicamente dentro de um `<a href>`, mas estilizado como texto simples (sem fundo, so cor+negrito) -- o operador reportou nao abrir ao toque no telemovel. Corrigido em `Prepara Email Landing Pronta` (`imovel-landing-wf.json`) e `Prepara Email Lembrete` (`imovel-cron-expiracao-wf.json`): o link passou a um botao solido "Ver a minha pagina" (mesma tabela/estilo do botao CTA existente -- fundo `#8c6d4f`, padding, `border-radius`), com o URL completo repetido por baixo em texto pequeno cinza (`#8a8a8a`, `word-break:break-all`) para quem quiser copiar. O email 3 (`Prepara Email Expiracao`, "Reativar a minha pagina") nao foi tocado -- ja era o exemplo bem resolvido citado pelo operador, e nao tem link de landing (a pagina expirou).
+
+**C2 -- confirmado, sem alteracao necessaria.** O botao solido "Publicar o meu site" (CTA principal, `ctaUrl: paymentLink`) ja existia no email 1 desde a implementacao original do N1 -- confirmado por leitura direta do codigo e depois por evidencia real da execucao de teste (ver abaixo).
+
+**C3 -- nota de metodo registada, sem correcao de codigo.** 5a ocorrencia da mesma classe de erro (o harness introduz uma variavel nao intencional ao testar em cima do estado de referencia). Regra aplicada nesta sessao: a landing de teste usada para verificar C1 foi gerada por um `POST` novo e independente (landing_id `msdplfdr1goji6k92ia8`, gerado pelo proprio timestamp+random do workflow) -- a landing do N1 original nao foi tocada, lida nem mutada.
+
+**Deploy:** `scp` -> `docker cp` -> `chown node:node` -> `n8n import:workflow` (ambos os ficheiros) -> `docker restart prisma-n8n_n8n_1` -> `n8n update:workflow --active=true` (ambos) -> `restart` outra vez. Confirmado por reexportacao do servidor + comparacao programatica no-a-no dos `parameters`: `imovel-landing-wf` (20 nos) e `imovel-cron-expiracao-wf` (13 nos) identicos byte-a-byte ao repo local, ambos `active:true`. `curl -d '{}'` pos-deploy -> `HTTP 500` (fail-loud intacto, rota ativa).
+
+**Verificacao E2E com evidencia real (nao simulada), landing separada e limpa:** `POST /webhook/imovel-landing` com imovel fictício novo ("Apartamento T3 com Vista Mar em Cascais", `corretor_email: ibissonsilva@gmail.com`) -> `HTTP 200`. Publicado em `/var/www/prisma-builds/apartamento-t3-com-vista-mar-em-cascais-msdplfdr1goji6k92ia8.html`, `estado:"preview"`. `curl` ao link -> `HTTP 200`. Dados da execucao real (`execution_entity` id 588, `status:"success"`) decodificados diretamente do `database.sqlite` (formato indexado do n8n, resolvido com um script local) confirmam: no `Enviar Email Landing Pronta` com `id:"19fc96a1215a0b81"`, `labelIds:["UNREAD","SENT","INBOX"]` -- envio real confirmado pela API do Gmail. HTML real enviado (nao um mock) confirmado com os 3 links esperados: (1) botao solido "Ver a minha pagina" com `href` exatamente igual ao URL canonico publicado, seguido do URL em texto pequeno por baixo; (2) link de partilha WhatsApp; (3) botao solido "Publicar o meu site" a apontar para o WhatsApp do Prisma.
+
+**Link entregue ao operador para teste manual:** `https://prisma.binderstudios.com/apartamento-t3-com-vista-mar-em-cascais-msdplfdr1goji6k92ia8.html` (landing `preview`, expira automaticamente ~24h depois da geracao, ciclo de vida normal -- nao apagada a mao para o operador poder confirmar o email/link).
+
+**Limpeza pos-teste:** ficheiros temporarios de deploy/verificacao (`export-*.json`, `exec588.json`, workflows copiados) removidos de `/tmp` no host e no container. A landing de teste em si foi deixada online deliberadamente (ver acima).
+
+**Commitado** (ver commit desta sessao): `n8n/imovel-landing-wf.json`, `n8n/imovel-cron-expiracao-wf.json`.
+
 ---
 
 ## Protocolo de fim de sesso (obrigatrio)
