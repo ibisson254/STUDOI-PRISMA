@@ -35,7 +35,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const targetId = String((($('Webhook Pagar').item.json.query) || {}).landing_id || '').trim();\nif (!targetId) {\n  return [{ json: { erro: 'Falta o parâmetro landing_id.' } }];\n}\n\nconst items = $input.all();\nlet state = null;\nlet stateFileName = '';\nfor (let i = 0; i < items.length; i++) {\n  if (!items[i].binary || !items[i].binary.data) continue;\n  const buf = await this.helpers.getBinaryDataBuffer(i, 'data');\n  let s;\n  try { s = JSON.parse(buf.toString('utf8')); } catch (e) { continue; }\n  if (s.landing_id === targetId) {\n    state = s;\n    stateFileName = (items[i].binary.data.fileName || '').split('/').pop();\n    break;\n  }\n}\n\nif (!state) {\n  return [{ json: { erro: 'Esta página de pré-visualização não foi encontrada (pode já ter expirado).' } }];\n}\nif (state.estado === 'publicado') {\n  return [{ json: { erro: '', jaPublicado: true, canonical: state.url } }];\n}\n\n// PRISMA CONFIG CENTRAL -- pagamento (ver nota identica no no \"Valida e Processa Callback\")\nconst PRISMA_PAYMENT_AMOUNT = 100; // centimos -- EUR 1,00, valor de teste simbolico da Fase 2.2 (decisao do operador). O preco real so se define na Fase 3 -- mudar SO aqui e no callback.\n\n// Reaproveita uma ordem pendente recente (<30 min) em vez de gerar uma nova a cada clique/reload\nconst agora = Date.now();\nconst pendenteRecente = !!state.payment_order_id && state.payment_status === 'pendente' &&\n  !!state.payment_order_criado_em && (agora - new Date(state.payment_order_criado_em).getTime()) < 30 * 60 * 1000;\n\nconst orderId = pendenteRecente ? state.payment_order_id : String(agora);\nif (!pendenteRecente) {\n  state.payment_order_id = orderId;\n  state.payment_status = 'pendente';\n  state.payment_order_criado_em = new Date().toISOString();\n}\n\nconst titulo = state.imovel?.titulo || 'Imóvel Prisma';\nconst out = Buffer.from(JSON.stringify(state, null, 2), 'utf8');\nreturn [{\n  json: { erro: '', jaPublicado: false, orderId, stateFileName, titulo, amountEuros: (PRISMA_PAYMENT_AMOUNT / 100).toFixed(2) },\n  binary: { state: await this.helpers.prepareBinaryData(out, stateFileName, 'application/json') }\n}];"
+        "jsCode": "const targetId = String((($('Webhook Pagar').item.json.query) || {}).landing_id || '').trim();\nif (!targetId) {\n  return [{ json: { erro: 'Falta o parâmetro landing_id.' } }];\n}\n\nconst items = $input.all();\nlet state = null;\nlet stateFileName = '';\nfor (let i = 0; i < items.length; i++) {\n  if (!items[i].binary || !items[i].binary.data) continue;\n  const buf = await this.helpers.getBinaryDataBuffer(i, 'data');\n  let s;\n  try { s = JSON.parse(buf.toString('utf8')); } catch (e) { continue; }\n  if (s.landing_id === targetId) {\n    state = s;\n    stateFileName = (items[i].binary.data.fileName || '').split('/').pop();\n    break;\n  }\n}\n\nif (!state) {\n  return [{ json: { erro: 'Esta página de pré-visualização não foi encontrada (pode já ter expirado).' } }];\n}\nif (state.estado === 'publicado') {\n  return [{ json: { erro: '', jaPublicado: true, canonical: state.url } }];\n}\n\n// PRISMA CONFIG CENTRAL -- pagamento (ver nota identica no no \"Valida e Processa Callback\")\nconst PRISMA_PAYMENT_AMOUNT = 100; // centimos -- EUR 1,00, valor de teste simbolico da Fase 2.2 (decisao do operador). O preco real so se define na Fase 3 -- mudar SO aqui e no callback.\n\n// Reaproveita uma ordem pendente recente (<30 min) em vez de gerar uma nova a cada clique/reload\nconst agora = Date.now();\nconst pendenteRecente = !!state.payment_order_id && state.payment_status === 'pendente' &&\n  !!state.payment_order_criado_em && (agora - new Date(state.payment_order_criado_em).getTime()) < 30 * 60 * 1000;\n\nconst orderId = targetId; // Eupago: identificador da transacao = landing_id (decisao do operador) -- assim o callback sabe sempre que landing publicar, sem depender de um id gerado por click.\nif (!pendenteRecente) {\n  state.payment_order_id = orderId;\n  state.payment_status = 'pendente';\n  state.payment_order_criado_em = new Date().toISOString();\n}\n\nconst titulo = state.imovel?.titulo || 'Imóvel Prisma';\nconst out = Buffer.from(JSON.stringify(state, null, 2), 'utf8');\nreturn [{\n  json: { erro: '', jaPublicado: false, orderId, stateFileName, titulo, amountEuros: (PRISMA_PAYMENT_AMOUNT / 100).toFixed(2) },\n  binary: { state: await this.helpers.prepareBinaryData(out, stateFileName, 'application/json') }\n}];"
       },
       "id": "code-resolve-landing-1",
       "name": "Resolve Landing Pagamento",
@@ -160,14 +160,16 @@
     {
       "parameters": {
         "method": "POST",
-        "url": "https://api.ifthenpay.com/gateway/pinpay/SUBSTITUIR_GATEWAY_KEY",
+        "url": "https://sandbox.eupago.pt/api/v1.02/paybylink/create",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ { \"id\": $json.orderId, \"amount\": $json.amountEuros, \"description\": $json.titulo, \"lang\": \"pt\" } }}",
+        "jsonBody": "={{ { \"payment\": { \"amount\": { \"value\": Number($json.amountEuros), \"currency\": \"EUR\" }, \"identifier\": $json.orderId }, \"customer\": { \"notify\": false } } }}",
         "options": {}
       },
       "id": "http-chama-gateway-1",
-      "name": "Chama Gateway Ifthenpay",
+      "name": "Chama Gateway Eupago",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
@@ -175,11 +177,17 @@
         200
       ],
       "continueOnFail": true,
-      "onError": "continueRegularOutput"
+      "onError": "continueRegularOutput",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "qrPCU6lTppKJi3b3",
+          "name": "Eupago Sandbox"
+        }
+      }
     },
     {
       "parameters": {
-        "jsCode": "// TODO -- confirmar os nomes exatos dos campos de resposta assim que a conta\n// ifthenpay existir e a chamada real puder ser testada (P1/P2, credenciais\n// em placeholder ate la). Hoje a chave do gateway e um placeholder, por isso\n// esta chamada falha sempre de forma controlada -- o utilizador ve a pagina\n// \"pagamento indisponivel\", nunca um erro cru.\nconst resp = $json;\nconst erroGateway = resp.error ? String((resp.error && resp.error.message) || resp.error) : '';\nconst redirectUrl = !erroGateway\n  ? (resp.PaymentUrl || resp.paymentUrl || resp.redirectUrl || resp.RedirectUrl || resp.url || resp.Url || '')\n  : '';\nreturn [{ json: { redirectUrl, gatewayOk: !!redirectUrl } }];"
+        "jsCode": "// Eupago PayByLink (sandbox v1.02) -- confirmado por chamadas reais em 2026-08-07 (ver relatorio Fase 2.2/2.3):\n// sucesso (201): {\"transactionStatus\":\"Success\",\"transactionID\":\"...\",\"status\":\"Pendente\",\"redirectUrl\":\"https://sandbox.eupago.pt/api/extern/paybylink/form/<id>\"}\n// erro (400/401): {\"transactionStatus\":\"Rejected\",\"code\":\"AMOUNT_MISSING|APIKEY_INVALID|...\",\"text\":\"...\"}\n// PayByLink abre uma pagina hospedada pela Eupago onde o cliente escolhe MB WAY, Multibanco, Cartao ou CofidisPay.\nconst resp = $json;\nconst sucesso = resp.transactionStatus === 'Success' && !!resp.redirectUrl;\nreturn [{ json: { redirectUrl: sucesso ? resp.redirectUrl : '', gatewayOk: sucesso } }];"
       },
       "id": "code-interpreta-gateway-1",
       "name": "Interpreta Resposta Gateway",
@@ -290,7 +298,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const q = $json.query || {};\nreturn [{ json: {\n  key: q.key || '',\n  id: q.id || '',\n  amount: q.amount || '',\n  payment_datetime: q.payment_datetime || '',\n  payment_method: q.payment_method || ''\n} }];"
+        "jsCode": "// Eupago Realtime Webhooks 1.0 -- campos confirmados na documentacao oficial\n// (ver relatorio Fase 2.2/2.3): identificador, valor, mp, data, canal, referencia,\n// transacao, chave_api, entidade, comissao, local. Le de query por defesa (GET),\n// o par POST (\"Normaliza Callback POST\") le do corpo.\nconst q = $json.query || {};\nreturn [{ json: {\n  chave_api: q.chave_api || '',\n  identificador: q.identificador || '',\n  valor: q.valor || '',\n  data: q.data || '',\n  mp: q.mp || '',\n  entidade: q.entidade || '',\n  referencia: q.referencia || '',\n  transacao: q.transacao || ''\n} }];"
       },
       "id": "code-normaliza-get-1",
       "name": "Normaliza Callback GET",
@@ -303,7 +311,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const b = $json.body || {};\nconst q = $json.query || {};\nreturn [{ json: {\n  key: (b.key ?? q.key) || '',\n  id: (b.id ?? q.id) || '',\n  amount: (b.amount ?? q.amount) || '',\n  payment_datetime: (b.payment_datetime ?? q.payment_datetime) || '',\n  payment_method: (b.payment_method ?? q.payment_method) || ''\n} }];"
+        "jsCode": "// Eupago Realtime Webhooks 1.0 -- ver nota identica em \"Normaliza Callback GET\".\nconst b = $json.body || {};\nconst q = $json.query || {};\nreturn [{ json: {\n  chave_api: (b.chave_api ?? q.chave_api) || '',\n  identificador: (b.identificador ?? q.identificador) || '',\n  valor: (b.valor ?? q.valor) || '',\n  data: (b.data ?? q.data) || '',\n  mp: (b.mp ?? q.mp) || '',\n  entidade: (b.entidade ?? q.entidade) || '',\n  referencia: (b.referencia ?? q.referencia) || '',\n  transacao: (b.transacao ?? q.transacao) || ''\n} }];"
       },
       "id": "code-normaliza-post-1",
       "name": "Normaliza Callback POST",
@@ -330,7 +338,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// PRISMA CONFIG CENTRAL -- pagamento (replicado, ver nota identica no no\n// \"Resolve Landing Pagamento\" e em imovel-landing-wf.json/imovel-cron-expiracao-wf.json\n// para os links do botao \"Publicar o meu site\"/\"Reativar a minha pagina\").\nconst PRISMA_PAYMENT_AMOUNT = 100; // centimos -- EUR 1,00, valor de teste simbolico da Fase 2.2. Mudar SO aqui e no \"Resolve Landing Pagamento\" quando o preco real for definido (Fase 3).\n// TODO SUBSTITUIR -- chave anti-phishing real, gerada no backoffice do gateway\n// escolhido (ver relatorio P1) depois de o operador abrir conta. Sem esta troca\n// qualquer POST/GET a este endpoint e rejeitado (chaveValida fica sempre falsa),\n// o que e seguro por omissao mas nao publica nada ate ser configurada.\nconst PRISMA_PAYMENT_CALLBACK_SECRET = 'SUBSTITUIR_CHAVE_ANTIPHISHING_GATEWAY';\nconst PRISMA_OPERATOR_EMAIL = 'ibissonsilva@gmail.com';\n\nlet cb = null;\ntry { cb = $('Normaliza Callback GET').item.json; } catch (e) { /* esta execucao veio do POST */ }\nif (!cb) { try { cb = $('Normaliza Callback POST').item.json; } catch (e) { /* nem GET nem POST -- nao devia acontecer */ } }\nif (!cb) throw new Error('PAGAMENTO CONFIRMADO: sem dados de callback (nem GET nem POST executaram nesta run).');\n\nconst chaveValida = !!cb.key && cb.key === PRISMA_PAYMENT_CALLBACK_SECRET;\nconst orderId = String(cb.id || '').trim();\n\nconst items = $input.all();\nlet stateFound = null;\nlet stateFileName = '';\nfor (let i = 0; i < items.length; i++) {\n  if (!items[i].binary || !items[i].binary.data) continue;\n  const buf = await this.helpers.getBinaryDataBuffer(i, 'data');\n  let s;\n  try { s = JSON.parse(buf.toString('utf8')); } catch (e) { continue; }\n  if (orderId && String(s.payment_order_id || '') === orderId) {\n    stateFound = s;\n    stateFileName = (items[i].binary.data.fileName || '').split('/').pop();\n    break;\n  }\n}\n\n// P3 -- callback repetido, chave invalida ou landing desconhecida: NUNCA processa\n// de novo (nem republica, nem reenvia email) -- so confirma 200 ao gateway (ou,\n// no caso de chave invalida, simplesmente nao ha nada de sensivel para expor).\n// jaConfirmado tambem cai aqui -- e o proprio mecanismo de idempotencia do P3.\nconst jaConfirmado = !!(stateFound && stateFound.payment_confirmado === true);\nif (!chaveValida || !stateFound || jaConfirmado) {\n  return [{ json: {\n    precisaProcessar: false,\n    motivo: !chaveValida ? 'chave_invalida' : (!stateFound ? 'landing_nao_encontrada' : 'ja_processado'),\n    orderId\n  } }];\n}\n\n// P3 -- valor tem de bater certo com o esperado; formatos de \"amount\" variam por\n// gateway (ex.: \"1.00\"), por isso normaliza sempre para centimos antes de comparar.\nconst amountRecebidoCentimos = Math.round(parseFloat(String(cb.amount || '0').replace(',', '.')) * 100) || 0;\nconst valorCorreto = amountRecebidoCentimos === PRISMA_PAYMENT_AMOUNT;\n\nstateFound.payment_status = valorCorreto ? 'confirmado' : 'valor_incorreto';\nstateFound.payment_confirmado = valorCorreto;\nstateFound.payment_confirmado_em = new Date().toISOString();\nstateFound.payment_gateway_amount = cb.amount || null;\nstateFound.payment_method = cb.payment_method || null;\n\nconst titulo = stateFound.imovel?.titulo || 'O seu imóvel';\nconst targetEmail = String(stateFound.cliente?.corretor?.email || '').trim() || PRISMA_OPERATOR_EMAIL;\n\nconst out = Buffer.from(JSON.stringify(stateFound, null, 2), 'utf8');\nreturn [{\n  json: {\n    precisaProcessar: true,\n    valorCorreto,\n    orderId,\n    stateFileName,\n    canonical: stateFound.url,\n    titulo,\n    targetEmail,\n    valorEsperadoEuros: (PRISMA_PAYMENT_AMOUNT / 100).toFixed(2),\n    valorRecebido: cb.amount || '',\n    operatorEmail: PRISMA_OPERATOR_EMAIL\n  },\n  binary: { state: await this.helpers.prepareBinaryData(out, stateFileName, 'application/json') }\n}];"
+        "jsCode": "// PRISMA CONFIG CENTRAL -- pagamento (replicado, ver nota identica no no\n// \"Resolve Landing Pagamento\" e em imovel-landing-wf.json/imovel-cron-expiracao-wf.json\n// para os links do botao \"Publicar o meu site\"/\"Reativar a minha pagina\").\nconst PRISMA_PAYMENT_AMOUNT = 100; // centimos -- EUR 1,00, valor de teste simbolico da Fase 2.2. Mudar SO aqui e no \"Resolve Landing Pagamento\" quando o preco real for definido (Fase 3).\n// TODO SUBSTITUIR -- a mesma chave da credencial n8n \"Eupago Sandbox\" (backoffice\n// Eupago > Channels > Channel Listing). O callback (Realtime Webhooks 1.0) devolve\n// o campo chave_api com a chave usada para criar a referencia -- compara-se aqui\n// como sinal de autenticidade (equivalente ao \"key\" antiphishing do Ifthenpay).\n// Placeholder no repo por seguranca -- nunca commitar a chave real; o valor real\n// e aplicado apenas na instancia n8n em execucao. Sem esta troca, chaveValida fica\n// sempre falsa (seguro por omissao, mas nao publica nada ate ser configurada).\nconst PRISMA_EUPAGO_API_KEY = 'SUBSTITUIR_CHAVE_EUPAGO_SANDBOX';\nconst PRISMA_OPERATOR_EMAIL = 'ibissonsilva@gmail.com';\n\nlet cb = null;\ntry { cb = $('Normaliza Callback GET').item.json; } catch (e) { /* esta execucao veio do POST */ }\nif (!cb) { try { cb = $('Normaliza Callback POST').item.json; } catch (e) { /* nem GET nem POST -- nao devia acontecer */ } }\nif (!cb) throw new Error('PAGAMENTO CONFIRMADO: sem dados de callback (nem GET nem POST executaram nesta run).');\n\nconst chaveValida = !!cb.chave_api && cb.chave_api === PRISMA_EUPAGO_API_KEY;\nconst orderId = String(cb.identificador || '').trim();\n\nconst items = $input.all();\nlet stateFound = null;\nlet stateFileName = '';\nfor (let i = 0; i < items.length; i++) {\n  if (!items[i].binary || !items[i].binary.data) continue;\n  const buf = await this.helpers.getBinaryDataBuffer(i, 'data');\n  let s;\n  try { s = JSON.parse(buf.toString('utf8')); } catch (e) { continue; }\n  if (orderId && String(s.payment_order_id || '') === orderId) {\n    stateFound = s;\n    stateFileName = (items[i].binary.data.fileName || '').split('/').pop();\n    break;\n  }\n}\n\n// P3 -- callback repetido, chave invalida ou landing desconhecida: NUNCA processa\n// de novo (nem republica, nem reenvia email) -- so confirma 200 ao gateway (ou,\n// no caso de chave invalida, simplesmente nao ha nada de sensivel para expor).\n// jaConfirmado tambem cai aqui -- e o proprio mecanismo de idempotencia do P3.\nconst jaConfirmado = !!(stateFound && stateFound.payment_confirmado === true);\nif (!chaveValida || !stateFound || jaConfirmado) {\n  return [{ json: {\n    precisaProcessar: false,\n    motivo: !chaveValida ? 'chave_invalida' : (!stateFound ? 'landing_nao_encontrada' : 'ja_processado'),\n    orderId\n  } }];\n}\n\n// P3 -- valor tem de bater certo com o esperado; o campo \"valor\" da Eupago vem\n// como string (ex.: \"1.00\"), por isso normaliza sempre para centimos antes de comparar.\nconst amountRecebidoCentimos = Math.round(parseFloat(String(cb.valor || '0').replace(',', '.')) * 100) || 0;\nconst valorCorreto = amountRecebidoCentimos === PRISMA_PAYMENT_AMOUNT;\n\nstateFound.payment_status = valorCorreto ? 'confirmado' : 'valor_incorreto';\nstateFound.payment_confirmado = valorCorreto;\nstateFound.payment_confirmado_em = new Date().toISOString();\nstateFound.payment_gateway_amount = cb.valor || null;\nstateFound.payment_method = cb.mp || null;\n\nconst titulo = stateFound.imovel?.titulo || 'O seu imóvel';\nconst targetEmail = String(stateFound.cliente?.corretor?.email || '').trim() || PRISMA_OPERATOR_EMAIL;\n\nconst out = Buffer.from(JSON.stringify(stateFound, null, 2), 'utf8');\nreturn [{\n  json: {\n    precisaProcessar: true,\n    valorCorreto,\n    orderId,\n    stateFileName,\n    canonical: stateFound.url,\n    titulo,\n    targetEmail,\n    valorEsperadoEuros: (PRISMA_PAYMENT_AMOUNT / 100).toFixed(2),\n    valorRecebido: cb.valor || '',\n    operatorEmail: PRISMA_OPERATOR_EMAIL\n  },\n  binary: { state: await this.helpers.prepareBinaryData(out, stateFileName, 'application/json') }\n}];"
       },
       "id": "code-valida-callback-1",
       "name": "Valida e Processa Callback",
@@ -534,6 +542,118 @@
         1900,
         700
       ]
+    },
+    {
+      "parameters": {
+        "fileSelector": "=/home/node/.n8n-files/builds/{{$(\"Valida e Processa Callback\").item.json.stateFileName}}",
+        "options": {}
+      },
+      "id": "read-state-email-confirmacao-1",
+      "name": "Le State Email Confirmacao",
+      "type": "n8n-nodes-base.readWriteFile",
+      "typeVersion": 1,
+      "position": [
+        2000,
+        400
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const emailResp = $json;\nconst falhou = !!emailResp.error;\nconst stateFileName = $('Valida e Processa Callback').item.json.stateFileName;\n\nconst buf = await this.helpers.getBinaryDataBuffer(0, 'data');\nlet state;\ntry { state = JSON.parse(buf.toString('utf8')); } catch (e) {\n  throw new Error('VERIFICA EMAIL: state.json ilegível ao registar o envio (' + stateFileName + ').');\n}\nstate.email_enviado = !falhou;\nstate.email_verificado_em = new Date().toISOString();\nif (falhou) {\n  state.email_erro = String(emailResp.error);\n} else {\n  delete state.email_erro;\n  state.email_gmail_id = emailResp.id || null;\n}\n\nconst out = Buffer.from(JSON.stringify(state, null, 2), 'utf8');\nreturn [{\n  json: { emailFalhou: falhou, stateFileName, motivo: falhou ? String(emailResp.error) : '' },\n  binary: { state: await this.helpers.prepareBinaryData(out, stateFileName, 'application/json') }\n}];"
+      },
+      "id": "code-prep-atualiza-email-confirmacao-1",
+      "name": "Prepara Atualizacao Email Confirmacao",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2200,
+        400
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "write",
+        "fileName": "=/home/node/.n8n-files/builds/{{$json.stateFileName}}",
+        "dataPropertyName": "state",
+        "options": {}
+      },
+      "id": "write-state-email-confirmacao-1",
+      "name": "Grava State Email Confirmacao",
+      "type": "n8n-nodes-base.readWriteFile",
+      "typeVersion": 1,
+      "position": [
+        2400,
+        400
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "if ($json.emailFalhou) {\n  throw new Error('ENVIO DE EMAIL FALHOU (ja registado em email_erro no state.json) -- ' + $json.motivo);\n}\nreturn [{ json: {} }];"
+      },
+      "id": "code-verifica-email-confirmacao-1",
+      "name": "Verifica Envio Email Confirmacao",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2600,
+        400
+      ]
+    },
+    {
+      "parameters": {
+        "fileSelector": "=/home/node/.n8n-files/builds/{{$(\"Valida e Processa Callback\").item.json.stateFileName}}",
+        "options": {}
+      },
+      "id": "read-state-email-alerta-1",
+      "name": "Le State Email Alerta",
+      "type": "n8n-nodes-base.readWriteFile",
+      "typeVersion": 1,
+      "position": [
+        1800,
+        700
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const emailResp = $json;\nconst falhou = !!emailResp.error;\nconst stateFileName = $('Valida e Processa Callback').item.json.stateFileName;\n\nconst buf = await this.helpers.getBinaryDataBuffer(0, 'data');\nlet state;\ntry { state = JSON.parse(buf.toString('utf8')); } catch (e) {\n  throw new Error('VERIFICA EMAIL: state.json ilegível ao registar o envio (' + stateFileName + ').');\n}\nstate.email_enviado = !falhou;\nstate.email_verificado_em = new Date().toISOString();\nif (falhou) {\n  state.email_erro = String(emailResp.error);\n} else {\n  delete state.email_erro;\n  state.email_gmail_id = emailResp.id || null;\n}\n\nconst out = Buffer.from(JSON.stringify(state, null, 2), 'utf8');\nreturn [{\n  json: { emailFalhou: falhou, stateFileName, motivo: falhou ? String(emailResp.error) : '' },\n  binary: { state: await this.helpers.prepareBinaryData(out, stateFileName, 'application/json') }\n}];"
+      },
+      "id": "code-prep-atualiza-email-alerta-1",
+      "name": "Prepara Atualizacao Email Alerta",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2000,
+        700
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "write",
+        "fileName": "=/home/node/.n8n-files/builds/{{$json.stateFileName}}",
+        "dataPropertyName": "state",
+        "options": {}
+      },
+      "id": "write-state-email-alerta-1",
+      "name": "Grava State Email Alerta",
+      "type": "n8n-nodes-base.readWriteFile",
+      "typeVersion": 1,
+      "position": [
+        2200,
+        700
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "if ($json.emailFalhou) {\n  throw new Error('ENVIO DE EMAIL FALHOU (ja registado em email_erro no state.json) -- ' + $json.motivo);\n}\nreturn [{ json: {} }];"
+      },
+      "id": "code-verifica-email-alerta-1",
+      "name": "Verifica Envio Email Alerta",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2400,
+        700
+      ]
     }
   ],
   "connections": {
@@ -610,14 +730,14 @@
       "main": [
         [
           {
-            "node": "Chama Gateway Ifthenpay",
+            "node": "Chama Gateway Eupago",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Chama Gateway Ifthenpay": {
+    "Chama Gateway Eupago": {
       "main": [
         [
           {
@@ -748,6 +868,11 @@
             "node": "IF Valor Correto",
             "type": "main",
             "index": 0
+          },
+          {
+            "node": "Responde Callback OK",
+            "type": "main",
+            "index": 0
           }
         ]
       ]
@@ -796,7 +921,40 @@
       "main": [
         [
           {
-            "node": "Responde Callback OK",
+            "node": "Le State Email Confirmacao",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Le State Email Confirmacao": {
+      "main": [
+        [
+          {
+            "node": "Prepara Atualizacao Email Confirmacao",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepara Atualizacao Email Confirmacao": {
+      "main": [
+        [
+          {
+            "node": "Grava State Email Confirmacao",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Grava State Email Confirmacao": {
+      "main": [
+        [
+          {
+            "node": "Verifica Envio Email Confirmacao",
             "type": "main",
             "index": 0
           }
@@ -818,7 +976,40 @@
       "main": [
         [
           {
-            "node": "Responde Callback OK",
+            "node": "Le State Email Alerta",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Le State Email Alerta": {
+      "main": [
+        [
+          {
+            "node": "Prepara Atualizacao Email Alerta",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepara Atualizacao Email Alerta": {
+      "main": [
+        [
+          {
+            "node": "Grava State Email Alerta",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Grava State Email Alerta": {
+      "main": [
+        [
+          {
+            "node": "Verifica Envio Email Alerta",
             "type": "main",
             "index": 0
           }
@@ -827,6 +1018,7 @@
     }
   },
   "settings": {
-    "executionOrder": "v1"
+    "executionOrder": "v1",
+    "errorWorkflow": "imovel-error-notify-wf"
   }
 }

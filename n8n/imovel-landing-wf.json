@@ -419,6 +419,119 @@
             "name": "Gmail account"
           }
         }
+      },
+      {
+        "parameters": {
+          "fileSelector": "=/home/node/.n8n-files/builds/{{$('Compilador Editorial').item.json.stateFileName}}",
+          "options": {}
+        },
+        "id": "read-state-email-n1-1",
+        "name": "Le State Email N1",
+        "type": "n8n-nodes-base.readWriteFile",
+        "typeVersion": 1,
+        "position": [
+          1400,
+          700
+        ]
+      },
+      {
+        "parameters": {
+          "jsCode": "const emailResp = $('Enviar Email Landing Pronta').item.json; // 'Le State Email N1' (no anterior) substitui $json pelos metadados do ficheiro lido -- tem de se referenciar o no do Gmail pelo nome\nconst falhou = !!emailResp.error;\nconst stateFileName = $('Compilador Editorial').item.json.stateFileName;\n\nconst buf = await this.helpers.getBinaryDataBuffer(0, 'data');\nlet state;\ntry { state = JSON.parse(buf.toString('utf8')); } catch (e) {\n  throw new Error('VERIFICA EMAIL: state.json ilegível ao registar o envio (' + stateFileName + ').');\n}\nstate.email_enviado = !falhou;\nstate.email_verificado_em = new Date().toISOString();\nif (falhou) {\n  state.email_erro = String(emailResp.error);\n} else {\n  delete state.email_erro;\n  state.email_gmail_id = emailResp.id || null;\n}\n\nconst out = Buffer.from(JSON.stringify(state, null, 2), 'utf8');\nreturn [{\n  json: { emailFalhou: falhou, stateFileName, motivo: falhou ? String(emailResp.error) : '' },\n  binary: { state: await this.helpers.prepareBinaryData(out, stateFileName, 'application/json') }\n}];"
+        },
+        "id": "code-prep-atualiza-email-n1-1",
+        "name": "Prepara Atualizacao Email N1",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          1600,
+          700
+        ]
+      },
+      {
+        "parameters": {
+          "operation": "write",
+          "fileName": "=/home/node/.n8n-files/builds/{{$json.stateFileName}}",
+          "dataPropertyName": "state",
+          "options": {}
+        },
+        "id": "write-state-email-n1-1",
+        "name": "Grava State Email N1",
+        "type": "n8n-nodes-base.readWriteFile",
+        "typeVersion": 1,
+        "position": [
+          1800,
+          700
+        ]
+      },
+      {
+        "parameters": {
+          "conditions": {
+            "options": {
+              "caseSensitive": true,
+              "leftValue": "",
+              "typeValidation": "strict"
+            },
+            "conditions": [
+              {
+                "leftValue": "={{$json.emailFalhou}}",
+                "rightValue": true,
+                "operator": {
+                  "type": "boolean",
+                  "operation": "true",
+                  "singleValue": true
+                }
+              }
+            ],
+            "combinator": "and"
+          },
+          "options": {}
+        },
+        "id": "if-email-falhou-n1-1",
+        "name": "IF Email Falhou N1",
+        "type": "n8n-nodes-base.if",
+        "typeVersion": 2,
+        "position": [
+          2000,
+          700
+        ]
+      },
+      {
+        "parameters": {
+          "method": "GET",
+          "url": "https://api.callmebot.com/whatsapp.php",
+          "authentication": "genericCredentialType",
+          "genericAuthType": "httpQueryAuth",
+          "sendQuery": true,
+          "queryParameters": {
+            "parameters": [
+              {
+                "name": "phone",
+                "value": "+351931068933"
+              },
+              {
+                "name": "text",
+                "value": "={{ 'Prisma: falha ao enviar email (landing pronta) -- ' + $json.motivo }}"
+              }
+            ]
+          },
+          "options": {}
+        },
+        "id": "http-notifica-falha-email-n1-1",
+        "name": "Notifica Falha Email N1",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.2,
+        "position": [
+          2200,
+          700
+        ],
+        "continueOnFail": true,
+        "onError": "continueRegularOutput",
+        "credentials": {
+          "httpQueryAuth": {
+            "id": "qO5K4F4EWVkE8lMd",
+            "name": "CallMeBot API Key"
+          }
+        }
       }
     ],
     "connections": {
@@ -537,11 +650,6 @@
               "node": "Notifica WhatsApp Sucesso",
               "type": "main",
               "index": 0
-            },
-            {
-              "node": "Prepara Email Landing Pronta",
-              "type": "main",
-              "index": 0
             }
           ]
         ]
@@ -603,6 +711,68 @@
       },
       "Enviar Email Landing Pronta": {
         "main": [
+          [
+            {
+              "node": "Le State Email N1",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Grava State JSON": {
+        "main": [
+          [
+            {
+              "node": "Prepara Email Landing Pronta",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Le State Email N1": {
+        "main": [
+          [
+            {
+              "node": "Prepara Atualizacao Email N1",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Prepara Atualizacao Email N1": {
+        "main": [
+          [
+            {
+              "node": "Grava State Email N1",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Grava State Email N1": {
+        "main": [
+          [
+            {
+              "node": "IF Email Falhou N1",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "IF Email Falhou N1": {
+        "main": [
+          [
+            {
+              "node": "Notifica Falha Email N1",
+              "type": "main",
+              "index": 0
+            }
+          ],
           []
         ]
       }
