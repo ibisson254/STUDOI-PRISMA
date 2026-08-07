@@ -17,10 +17,20 @@ por landing) para nao perder o registo de que a landing existiu.
 import json
 import os
 import glob
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 
 BUILDS_DIR = "/var/www/prisma-builds"
 LOG_PATH = os.path.join(BUILDS_DIR, "_expired_log.jsonl")
+
+# Fase 2.2 -- se um pagamento chegar depois de expires_at, o cliente tem
+# direito a que a landing seja reativada (imovel-pagamento-wf chama o
+# Reativador, que le o state.json em disco -- sem ele, reativar e impossivel).
+# Antes desta constante a limpeza corria no mesmo minuto/hora em que a landing
+# expirava (mesma cadencia horaria do cron do n8n que marca estado=expirado),
+# ou seja, na pratica o ficheiro podia desaparecer quase de imediato. A janela
+# de graca da tempo real para o cliente pagar depois de ver o email de
+# expiracao antes do disco ser libertado.
+GRACE_PERIOD_HOURS = 48
 
 
 def main():
@@ -44,6 +54,8 @@ def main():
         except ValueError:
             continue
         if exp_dt >= now:
+            continue
+        if exp_dt + timedelta(hours=GRACE_PERIOD_HOURS) >= now:
             continue
 
         imovel = state.get("imovel") or {}
