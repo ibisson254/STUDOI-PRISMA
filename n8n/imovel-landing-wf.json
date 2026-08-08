@@ -342,29 +342,18 @@
       },
       {
         "parameters": {
-          "method": "GET",
-          "url": "https://api.callmebot.com/whatsapp.php",
-          "authentication": "genericCredentialType",
-          "genericAuthType": "httpQueryAuth",
-          "sendQuery": true,
-          "queryParameters": {
-            "parameters": [
-              {
-                "name": "phone",
-                "value": "+351931068933"
-              },
-              {
-                "name": "text",
-                "value": "={{ 'Prisma: nova landing publicada -- ' + $json.stateJson.imovel.titulo + ' -> ' + $json.canonical }}"
-              }
-            ]
-          },
+          "resource": "message",
+          "operation": "send",
+          "sendTo": "ibissonsilva@gmail.com",
+          "subject": "={{ 'Prisma: nova landing publicada -- ' + $json.stateJson.imovel.titulo }}",
+          "emailType": "text",
+          "message": "={{ 'Nova landing publicada -- ' + $json.stateJson.imovel.titulo + ' -> ' + $json.canonical }}",
           "options": {}
         },
-        "id": "http-whatsapp-sucesso-1",
-        "name": "Notifica WhatsApp Sucesso",
-        "type": "n8n-nodes-base.httpRequest",
-        "typeVersion": 4.2,
+        "id": "gmail-notifica-sucesso-1",
+        "name": "Notifica Email Sucesso",
+        "type": "n8n-nodes-base.gmail",
+        "typeVersion": 2,
         "position": [
           1900,
           540
@@ -372,9 +361,9 @@
         "continueOnFail": true,
         "onError": "continueRegularOutput",
         "credentials": {
-          "httpQueryAuth": {
-            "id": "qO5K4F4EWVkE8lMd",
-            "name": "CallMeBot API Key"
+          "gmailOAuth2": {
+            "id": "PyaJ5XLg5uG1wp2m",
+            "name": "Gmail account"
           }
         }
       },
@@ -497,29 +486,18 @@
       },
       {
         "parameters": {
-          "method": "GET",
-          "url": "https://api.callmebot.com/whatsapp.php",
-          "authentication": "genericCredentialType",
-          "genericAuthType": "httpQueryAuth",
-          "sendQuery": true,
-          "queryParameters": {
-            "parameters": [
-              {
-                "name": "phone",
-                "value": "+351931068933"
-              },
-              {
-                "name": "text",
-                "value": "={{ 'Prisma: falha ao enviar email (landing pronta) -- ' + $json.motivo }}"
-              }
-            ]
-          },
+          "resource": "message",
+          "operation": "send",
+          "sendTo": "ibissonsilva@gmail.com",
+          "subject": "Prisma: falha ao enviar email (landing pronta)",
+          "emailType": "text",
+          "message": "={{ 'Prisma: falha ao enviar email (landing pronta) -- ' + $json.motivo }}",
           "options": {}
         },
-        "id": "http-notifica-falha-email-n1-1",
+        "id": "gmail-notifica-falha-email-n1-1",
         "name": "Notifica Falha Email N1",
-        "type": "n8n-nodes-base.httpRequest",
-        "typeVersion": 4.2,
+        "type": "n8n-nodes-base.gmail",
+        "typeVersion": 2,
         "position": [
           2200,
           700
@@ -527,9 +505,9 @@
         "continueOnFail": true,
         "onError": "continueRegularOutput",
         "credentials": {
-          "httpQueryAuth": {
-            "id": "qO5K4F4EWVkE8lMd",
-            "name": "CallMeBot API Key"
+          "gmailOAuth2": {
+            "id": "PyaJ5XLg5uG1wp2m",
+            "name": "Gmail account"
           }
         }
       }
@@ -647,7 +625,7 @@
               "index": 0
             },
             {
-              "node": "Notifica WhatsApp Sucesso",
+              "node": "Notifica Email Sucesso",
               "type": "main",
               "index": 0
             }

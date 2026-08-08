@@ -187,7 +187,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// N2 -- so grava lembrete_enviado:true quando o Gmail confirma o envio (id\n// presente na resposta do no anterior). Se o envio falhou, a flag fica por\n// gravar e a proxima passagem horaria do cron tenta reenviar -- nunca marca\n// \"enviado\" sem ter enviado de facto.\n// D1 -- alem disso regista sempre email_enviado/email_erro (nunca em\n// silencio): o no seguinte falha alto se emailFalhou, disparando o\n// errorWorkflow (CallMeBot/WhatsApp, ver settings + imovel-error-notify-wf).\nconst src = $('Verifica Expiracao').item.json;\nconst state = src.state;\nconst gmailResp = $input.item.json || {};\nconst sentOk = !!gmailResp.id;\n\nconst baseName = String(src.stateFileName || '').split('/').pop();\nconst statePath = '/home/node/.n8n-files/builds/' + baseName;\n\nif (sentOk) {\n  state.lembrete_enviado = true;\n  state.lembrete_enviado_em = new Date().toISOString();\n}\nstate.email_enviado = sentOk;\nstate.email_verificado_em = new Date().toISOString();\nif (!sentOk) {\n  state.email_erro = String(gmailResp.error || 'Gmail nao devolveu id de envio.');\n} else {\n  delete state.email_erro;\n  state.email_gmail_id = gmailResp.id;\n}\n\nconst out = Buffer.from(JSON.stringify(state, null, 2), 'utf8');\nreturn [{\n  json: { statePath, lembreteMarcado: sentOk, gmailId: gmailResp.id || null, emailFalhou: !sentOk, motivo: !sentOk ? String(gmailResp.error || 'Gmail nao devolveu id de envio.') : '' },\n  binary: { state: await this.helpers.prepareBinaryData(out, baseName, 'application/json') }\n}];"
+        "jsCode": "// N2 -- so grava lembrete_enviado:true quando o Gmail confirma o envio (id\n// presente na resposta do no anterior). Se o envio falhou, a flag fica por\n// gravar e a proxima passagem horaria do cron tenta reenviar -- nunca marca\n// \"enviado\" sem ter enviado de facto.\n// D1 -- alem disso regista sempre email_enviado/email_erro (nunca em\n// silencio): o IF a seguir ramifica em emailFalhou e dispara um alerta\n// direto por email ao operador (X3: CallMeBot morto, substituido por email;\n// nao usa errorWorkflow para nao arriscar contaminar a resposta HTTP).\nconst src = $('Verifica Expiracao').item.json;\nconst state = src.state;\nconst gmailResp = $input.item.json || {};\nconst sentOk = !!gmailResp.id;\n\nconst baseName = String(src.stateFileName || '').split('/').pop();\nconst statePath = '/home/node/.n8n-files/builds/' + baseName;\n\nif (sentOk) {\n  state.lembrete_enviado = true;\n  state.lembrete_enviado_em = new Date().toISOString();\n}\nstate.email_enviado = sentOk;\nstate.email_verificado_em = new Date().toISOString();\nif (!sentOk) {\n  state.email_erro = String(gmailResp.error || 'Gmail nao devolveu id de envio.');\n} else {\n  delete state.email_erro;\n  state.email_gmail_id = gmailResp.id;\n}\n\nconst out = Buffer.from(JSON.stringify(state, null, 2), 'utf8');\nreturn [{\n  json: { statePath, lembreteMarcado: sentOk, gmailId: gmailResp.id || null, emailFalhou: !sentOk, motivo: !sentOk ? String(gmailResp.error || 'Gmail nao devolveu id de envio.') : '' },\n  binary: { state: await this.helpers.prepareBinaryData(out, baseName, 'application/json') }\n}];"
       },
       "id": "code-marca-lembrete-1",
       "name": "Marca Lembrete Enviado",
@@ -363,29 +363,18 @@
     },
     {
       "parameters": {
-        "method": "GET",
-        "url": "https://api.callmebot.com/whatsapp.php",
-        "authentication": "genericCredentialType",
-        "genericAuthType": "httpQueryAuth",
-        "sendQuery": true,
-        "queryParameters": {
-          "parameters": [
-            {
-              "name": "phone",
-              "value": "+351931068933"
-            },
-            {
-              "name": "text",
-              "value": "={{ 'Prisma: falha ao enviar email (lembrete 3h) -- ' + $json.motivo }}"
-            }
-          ]
-        },
+        "resource": "message",
+        "operation": "send",
+        "sendTo": "ibissonsilva@gmail.com",
+        "subject": "Prisma: falha ao enviar email (lembrete 3h)",
+        "emailType": "text",
+        "message": "={{ 'Prisma: falha ao enviar email (lembrete 3h) -- ' + $json.motivo }}",
         "options": {}
       },
-      "id": "http-notifica-falha-email-n2-1",
+      "id": "gmail-notifica-falha-email-n2-1",
       "name": "Notifica Falha Email N2",
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4.2,
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2,
       "position": [
         1800,
         480
@@ -393,37 +382,26 @@
       "continueOnFail": true,
       "onError": "continueRegularOutput",
       "credentials": {
-        "httpQueryAuth": {
-          "id": "qO5K4F4EWVkE8lMd",
-          "name": "CallMeBot API Key"
+        "gmailOAuth2": {
+          "id": "PyaJ5XLg5uG1wp2m",
+          "name": "Gmail account"
         }
       }
     },
     {
       "parameters": {
-        "method": "GET",
-        "url": "https://api.callmebot.com/whatsapp.php",
-        "authentication": "genericCredentialType",
-        "genericAuthType": "httpQueryAuth",
-        "sendQuery": true,
-        "queryParameters": {
-          "parameters": [
-            {
-              "name": "phone",
-              "value": "+351931068933"
-            },
-            {
-              "name": "text",
-              "value": "={{ 'Prisma: falha ao enviar email (expiracao) -- ' + $json.motivo }}"
-            }
-          ]
-        },
+        "resource": "message",
+        "operation": "send",
+        "sendTo": "ibissonsilva@gmail.com",
+        "subject": "Prisma: falha ao enviar email (expiracao)",
+        "emailType": "text",
+        "message": "={{ 'Prisma: falha ao enviar email (expiracao) -- ' + $json.motivo }}",
         "options": {}
       },
-      "id": "http-notifica-falha-email-n3-1",
+      "id": "gmail-notifica-falha-email-n3-1",
       "name": "Notifica Falha Email N3",
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4.2,
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2,
       "position": [
         1800,
         700
@@ -431,9 +409,9 @@
       "continueOnFail": true,
       "onError": "continueRegularOutput",
       "credentials": {
-        "httpQueryAuth": {
-          "id": "qO5K4F4EWVkE8lMd",
-          "name": "CallMeBot API Key"
+        "gmailOAuth2": {
+          "id": "PyaJ5XLg5uG1wp2m",
+          "name": "Gmail account"
         }
       }
     }

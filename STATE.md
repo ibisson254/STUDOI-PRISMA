@@ -12,9 +12,9 @@
 ## [AUTO] Verdade de terreno
 
 > Gerado por `verify.ps1` â€” **nao editar a mao**.
-> **Verificado em:** 2026-08-03T14:50:54+01:00 | **Servidor:** `161.35.19.139` | **Commit:** `0057990`
+> **Verificado em:** 2026-08-08T01:24:03+01:00 | **Servidor:** `161.35.19.139` | **Commit:** `3b9346d`
 
-Sem falhas criticas. 4 pendencia(s) conhecida(s).
+**1 falha(s) critica(s)** e 3 pendencia(s). **NAO avancar** para sprints seguintes.
 
 | Item | Estado |
 |---|---|
@@ -26,15 +26,15 @@ Sem falhas criticas. 4 pendencia(s) conhecida(s).
 | Backup cifrado existe no servidor | OK |
 | Backup replicado FORA do servidor | OK |
 | Restauracao ja foi testada | PENDENTE |
-| Data do ultimo backup | `2026-08-03` |
+| Data do ultimo backup | `2026-08-07` |
 | Modelo Gemini configurado | OK `gemini-3.5-flash` |
 | escapeHtml presente no compilador | OK |
 | escapeAttr presente (safeUrl depende dela) | OK |
 | responseSchema (structured output) ativo | OK |
 | Typo BEM-VDO corrigido | OK |
-| Workflows registados (sem duplicados) | 9 workflows - DUPLICADO? |
+| Workflows registados (sem duplicados) | 10 workflows - DUPLICADO? |
 | Error Workflow configurado (Sprint 3) | PENDENTE |
-| Teste end-to-end | SALTADO (-SkipE2E) |
+| Webhook responde (rota registada) | 404 - ROTA NAO REGISTADA. PIPELINE EM BAIXO |
 | Workflow n8n versionado no Git | OK |
 
 <!-- AUTO:END -->
@@ -439,6 +439,41 @@ Artefactos de teste (2 landings, 8 fotos, 2 entradas em `clientes.json`) removid
 - Fase 1 (conformidade legal) continua adiada por decisao do operador.
 
 **Commitado nesta sessao:** `n8n/imovel-landing-wf.json`, `n8n/imovel-cron-expiracao-wf.json`, `STATE.md`. **NAO commitado:** `n8n/imovel-pagamento-wf.json` (edicao concorrente noutra sessao, ver D3 acima).
+
+### Sessao 2026-08-08 -- DIVERGENCIA encontrada (X1), X2 (registo Eupago 2.0), X3 (CallMeBot -> email), X4 (landing de teste de pagamento)
+
+**Decisao do operador confirmada no inicio da sessao: gateway = EUPAGO, fechado, nao reabrir.**
+
+**?? AVISO sobre o bloco [AUTO] acima -- "falha critica" e um falso alarme do proprio `verify.ps1`, nao do pipeline.** `verify.ps1` (linha ~170) testa `http://<IP>/webhook/tally-onboarding` -- URL literal em HTTP sobre o IP nu, de um produto legado (Sprint 0, `tally-onboarding-wf`) que nunca foi atualizado apos a migracao para dominio+HTTPS da sessao 2026-07-31 (H1-H5). Essa mesma sessao documentou que pedidos HTTP diretos ao IP nu passaram a devolver 404 do nginx (efeito colateral aceite da migracao) -- o script de verificacao nunca foi corrigido para refletir isso. Confirmado nesta sessao: `curl -X POST https://prisma.binderstudios.com/webhook/tally-onboarding` (dominio + HTTPS, o URL real do produto) responde **200**, workflow `active:true` confirmado (`n8n list:workflow`). **O pipeline real (imovel-*, o produto atual) esta confirmado a funcionar** por testes E2E diretos nesta sessao (ver X1/X4 abaixo) -- o "PIPELINE EM BAIXO" do bloco AUTO refere-se exclusivamente ao teste desatualizado do produto legado, nao a producao real. **Nao corrigido nesta sessao** (fora do pedido explicito X1-X4) -- registado para o operador decidir se `verify.ps1` deve ser atualizado para o dominio novo ou aposentado a favor dos testes E2E manuais que todas as sessoes desde 07-31 ja usam para o pipeline imovel-*.
+
+**DIVERGENCIA -- o pedido X1 partia de uma premissa incorreta, verificada e corrigida antes de agir (regra do AGENT.md: agir com o que a maquina responde, nao com o que o ficheiro/pedido alega).** O pedido dizia que D1 (verificacao de entrega de email) estava no Git mas nao em producao. Exportacao real do servidor (`n8n export:workflow`, nao a base local) mostrou o contrario: `imovel-landing-wf` e `imovel-cron-expiracao-wf` **ja estavam identicos byte-a-byte ao repo, `active:true`**, com `updatedAt` de 2026-08-07T01:21 -- ou seja, D1 tinha sido deployado nessa madrugada, so nao ficou registado com clareza no STATE.md da sessao anterior (o texto da sessao D1/D2/D3 fala do deploy de D1 mas a narrativa da D3, escrita depois, deu a entender o contrario para o pagamento). Pela mesma verificacao: `imovel-pagamento-wf` (Eupago) tambem ja estava live desde 2026-08-07T01:10 -- so 1 no (`Valida e Processa Callback`) diferia do repo, e a diferenca era **esperada e correta**: o repo tem o placeholder `SUBSTITUIR_CHAVE_EUPAGO_SANDBOX`, o servidor tem a chave real de sandbox (nunca commitada, por desenho -- ver comentario no proprio no). **Nao se reimplantou nada por engano em cima da chave real do servidor.** Conclusao: X1 nao exigiu deploy (ja estava feito); o tempo foi para verificar, nao para repetir trabalho ja feito.
+
+**X2 -- registo do requisito obrigatorio, SEM implementacao (conforme pedido).** O callback atual (`imovel-pagamento-wf.json`, no "Valida e Processa Callback") usa Realtime Webhooks **1.0** da Eupago: autenticidade validada por comparar `chave_api` (campo enviado no corpo do callback) com uma constante fixa no codigo. **Quem quer que obtenha essa chave_api pode forjar um callback de pagamento confirmado e publicar uma landing sem pagar.** Antes de qualquer cliente real (nunca antes disso -- risco financeiro direto), migrar para **Realtime Webhooks 2.0** com assinatura **HMAC-SHA256** (a Eupago assina o payload com uma chave de assinatura propria, distinta da API key de canal; validar a assinatura em vez de comparar um campo do proprio corpo). Bloqueado por falta de acesso ao backoffice Eupago para obter a chave de assinatura -- fora do alcance desta sessao (nao-interativa). **Nao implementado, por instrucao explicita do operador.**
+
+**X3 -- CallMeBot removido do codigo, substituido por email ao operador.** CallMeBot confirmado morto (bot cheio, ha semanas) nas 2 sessoes anteriores (D1, "Notifica WhatsApp Sucesso" pre-existente e o proprio alerta de falha do D1 apontavam para o mesmo canal mudo). Localizados e convertidos **5 nos HTTP Request (CallMeBot) em 3 ficheiros**, todos para `n8n-nodes-base.gmail` (mesma credencial `Gmail account`/`PyaJ5XLg5uG1wp2m` ja usada pelos emails ao cliente), `continueOnFail:true` mantido:
+- `imovel-landing-wf.json`: "Notifica WhatsApp Sucesso" -> **"Notifica Email Sucesso"** (renomeado; ligacao no grafo atualizada); "Notifica Falha Email N1" -> mesmo nome, agora Gmail.
+- `imovel-cron-expiracao-wf.json`: "Notifica Falha Email N2" e "Notifica Falha Email N3" -> mesmos nomes, agora Gmail.
+- `imovel-error-notify-wf.json` (o `errorWorkflow` usado por `imovel-pagamento-wf`, settings.errorWorkflow confirmado): "Notifica WhatsApp Falha" -> **"Notifica Email Falha"** (renomeado, ligacao atualizada); comentario do no de codigo tambem corrigido (referia CallMeBot/WhatsApp num sitio onde a informacao ja estava desatualizada mesmo antes desta sessao).
+Zero ocorrencias de `callmebot` a sobrar em `n8n/*.json` fora dos comentarios que agora *documentam* a substituicao (nao chamadas reais). Comentario da constante `PRISMA_EUPAGO_API_KEY`/etc. nao tocado (fora do pedido).
+
+**Deploy confirmado byte-a-byte:** `scp` -> `docker cp` -> `chown node:node` -> `n8n import:workflow` (os 3 ficheiros) -> `docker-compose restart n8n` -> `n8n update:workflow --active=true` (os 3 ids) -> `restart` outra vez. Reexportacao do servidor pos-deploy confirma os 3 workflows `active:true` e identicos no-a-no (`parameters`) ao repo local (`imovel-landing-wf` 25 nos, `imovel-cron-expiracao-wf` 20 nos, `imovel-error-notify-wf` 3 nos).
+
+**?? ACHADO CRITICO durante a verificacao E2E (X4): a credencial Gmail continua partida.** O pedido X3 partia de "o Gmail funciona" -- **nao funciona**. Landing de teste gerada nesta sessao (ver X4 abaixo) confirma no `state.json` real: `"email_enviado": false, "email_erro": "The credential \"Gmail account\" needs to be reconnected. (item 0)"`. Isto e o mesmo achado D2 da sessao anterior (refresh token OAuth expira a cada 7 dias em modo "Testing"), **ainda nao resolvido pelo operador**. Consequencia direta para X3: como o novo alerta de falha tambem usa Gmail, **se o Gmail estiver em baixo, o alerta sobre "o Gmail esta em baixo" tambem falha em ser entregue** -- o unico registo que sobra e o `email_erro` gravado no `state.json` (visivel, nao silencioso, gracas ao D1), mas nenhuma notificacao ativa chega ao operador enquanto a credencial nao for reconectada. **CallMeBot continuava pior (100% morto, sem prazo de recuperacao) por isso a troca continua a ser a decisao certa** -- mas o proximo passo real e reconectar o Gmail (D2 da sessao anterior: publicar a app OAuth para Producao resolve definitivamente), nao outro canal.
+
+**X4 -- landing de teste dedicada para o pagamento real, entregue ao operador:**
+- **Landing:** `https://prisma.binderstudios.com/apartamento-t2-teste-de-pagamento-eupago-msjmbd62yl8dqb9dg709.html` (estado `preview`, expira ~24h depois de 2026-08-08T00:11 UTC, NIF de teste `111111111` sem colisao com clientes reais/fixtures existentes).
+- **URL de pagamento (gera o link e redireciona para a Eupago):** `https://prisma.binderstudios.com/webhook/pagar?landing_id=msjmbd62yl8dqb9dg709` -- testado nesta sessao: `307` real para `https://sandbox.eupago.pt/api/extern/paybylink/form/...` (pagina real da Eupago sandbox, nao simulada). Valor: EUR 1,00 (`PRISMA_PAYMENT_AMOUNT=100` centimos, valor simbolico da Fase 2.2, ver sessao 2026-08-06).
+- **URL de callback a configurar no backoffice Eupago (Webhooks/Realtime):** `https://prisma.binderstudios.com/webhook/pagamento-confirmado` (aceita GET e POST -- ambos implementados porque o formato exato dependia do gateway final, ver sessao 2026-08-06). **E este URL que falta configurar no backoffice para o teste fechar o ciclo** -- sem ele, o pagamento confirma-se no lado da Eupago mas a nossa landing nunca sabe e fica presa em `preview`.
+- Apos o operador pagar (sandbox) e o callback disparar: esperado `estado` passar a `publicado`, slot ocupado em `clientes.json` para o NIF `111111111`, e (quando o Gmail for reconectado) um email de confirmacao. **Nao apagada no fim desta sessao, deliberadamente** -- e o artefacto que o proprio X4 pediu para ficar disponivel.
+
+**Nenhuma alteracao nesta sessao em:** `imovel-pagamento-wf.json` (ja estava correto, ver DIVERGENCIA acima), preco real (continua Fase 3), Fase 1 (conformidade legal, continua adiada).
+
+**Pendente / decisao do operador antes de avancar:**
+- **Reconectar a credencial Gmail** (bloqueia client emails E os novos alertas do operador -- prioridade maxima, repete-se de sessoes anteriores).
+- Configurar o webhook `https://prisma.binderstudios.com/webhook/pagamento-confirmado` no backoffice Eupago e testar o pagamento real na landing de X4.
+- Obter a chave de assinatura HMAC da Eupago (backoffice) para fechar X2 (Realtime Webhooks 2.0) antes de qualquer cliente real.
+
+**Commitado nesta sessao:** `n8n/imovel-landing-wf.json`, `n8n/imovel-cron-expiracao-wf.json`, `n8n/imovel-error-notify-wf.json`, `STATE.md`.
 
 ---
 

@@ -1,5 +1,5 @@
 ﻿{
-    "commit":  "0057990",
+    "commit":  "3b9346d",
     "server":  "161.35.19.139",
     "checks":  {
                    "ssh_no_password":  "OK",
@@ -10,18 +10,18 @@
                    "backup_local":  "OK",
                    "backup_offsite":  "OK",
                    "restore_tested":  "PENDENTE",
-                   "backup_date":  "`2026-08-03`",
+                   "backup_date":  "`2026-08-07`",
                    "model":  "OK `gemini-3.5-flash`",
                    "escape_html":  "OK",
                    "escape_attr":  "OK",
                    "response_schema":  "OK",
                    "typo_fixed":  "OK",
-                   "wf_count":  "9 workflows - DUPLICADO?",
+                   "wf_count":  "10 workflows - DUPLICADO?",
                    "error_workflow":  "PENDENTE",
-                   "e2e":  "SALTADO (-SkipE2E)",
+                   "webhook_alive":  "404 - ROTA NAO REGISTADA. PIPELINE EM BAIXO",
                    "wf_in_git":  "OK"
                },
-    "fails":  0,
-    "verified_at":  "2026-08-03T14:50:54+01:00",
-    "warns":  4
+    "fails":  1,
+    "verified_at":  "2026-08-08T01:24:03+01:00",
+    "warns":  3
 }
